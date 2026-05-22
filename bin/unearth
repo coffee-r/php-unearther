@@ -1,0 +1,54 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . '/../src/Report/JsonlReader.php';
+require_once __DIR__ . '/../src/Report/Aggregator.php';
+require_once __DIR__ . '/../src/Report/MarkdownRenderer.php';
+
+use CoffeeR\Unearther\Report\Aggregator;
+use CoffeeR\Unearther\Report\JsonlReader;
+use CoffeeR\Unearther\Report\MarkdownRenderer;
+
+$argv = $_SERVER['argv'];
+array_shift($argv);
+
+$command = array_shift($argv);
+if ($command !== 'report') {
+    fwrite(STDERR, "Usage: unearth report <jsonl...> --format md|json\n");
+    exit(1);
+}
+
+$format = 'md';
+$paths = array();
+for ($i = 0; $i < count($argv); $i++) {
+    if ($argv[$i] === '--format' && isset($argv[$i + 1])) {
+        $format = $argv[$i + 1];
+        $i++;
+        continue;
+    }
+
+    $paths[] = $argv[$i];
+}
+
+if (count($paths) === 0) {
+    fwrite(STDERR, "No JSONL files given.\n");
+    exit(1);
+}
+
+$reader = new JsonlReader();
+$aggregator = new Aggregator();
+$report = $aggregator->aggregate($reader->read($paths));
+
+if ($format === 'json') {
+    echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+    exit(0);
+}
+
+if ($format === 'md' || $format === 'markdown') {
+    $renderer = new MarkdownRenderer();
+    echo $renderer->render($report);
+    exit(0);
+}
+
+fwrite(STDERR, "Unknown format: " . $format . "\n");
+exit(1);

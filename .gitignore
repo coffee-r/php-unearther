@@ -1,0 +1,16 @@
+/vendor/
+/composer.lock
+/.phpunit.result.cache
+/.phpunit.cache/
+/.coverage/
+/coverage/
+
+BACKGROUND.md
+
+*.log
+*.jsonl
+!/tests/Fixtures/**/*.jsonl
+
+.DS_Store
+.idea/
+.vscode/
