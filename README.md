@@ -80,6 +80,8 @@ The observation record can include:
 
 Values are represented as shapes where possible. For example, request fields are recorded as `string`, `number`, `boolean`, `array`, or nested structures rather than raw values.
 
+The observation schema includes a `calls` array for future controller/model/library call trace events. The current CodeIgniter3 adapter does not automatically populate it; SQL caller metadata and Guzzle external HTTP events are the supported call-site signals in this prototype.
+
 ## Production Data Safety
 
 Be careful when enabling php-unearther in production or production-like environments. Observation logs may still reveal sensitive information even when raw request and response values are not stored.
@@ -225,6 +227,8 @@ The wrapper records calls made through `query()`, but it is not a complete Query
 ### HTTP Shape Capture
 
 For sampled requests, the CodeIgniter3 hook records `query_shape` and `request_shape`. If the request content type is `application/json` or a structured `+json` type, php-unearther decodes the body and records the JSON shape. If the body is invalid JSON, too large, or not JSON, it falls back to `$_POST` shape.
+
+JSON request shape capture reads `php://input`. On supported PHP runtimes this is normally reusable, but if application bootstrap code consumes or replaces the raw input before the hook runs, php-unearther may not be able to see the JSON body and will fall back to `$_POST`.
 
 Response body shape capture is off by default. Enable it only after reviewing the response surface:
 

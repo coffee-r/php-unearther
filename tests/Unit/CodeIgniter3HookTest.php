@@ -55,29 +55,29 @@ namespace CoffeeR\Unearther\Tests\Unit {
             )));
             (new Hook())->finish();
 
-        $trace = $this->readTrace($path);
-        $this->assertSame(array(), $trace['sql']);
-    }
+            $trace = $this->readTrace($path);
+            $this->assertSame(array(), $trace['sql']);
+        }
 
-    public function testFinishConfigCanOverrideSharedConfig()
-    {
-        $path = $this->tempPath();
-        $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
+        public function testFinishConfigCanOverrideSharedConfig()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
 
-        (new Hook())->start($this->config($path, array(
-            'codeigniter3' => array('sql_capture' => 'query_history'),
-        )));
-        (new Hook())->finish(array(
-            'codeigniter3' => array('sql_capture' => 'none'),
-        ));
+            (new Hook())->start($this->config($path, array(
+                'codeigniter3' => array('sql_capture' => 'query_history'),
+            )));
+            (new Hook())->finish(array(
+                'codeigniter3' => array('sql_capture' => 'none'),
+            ));
 
-        $trace = $this->readTrace($path);
-        $this->assertSame(array(), $trace['sql']);
-    }
+            $trace = $this->readTrace($path);
+            $this->assertSame(array(), $trace['sql']);
+        }
 
-    public function testQueryHistoryCaptureRecordsSql()
-    {
-        $path = $this->tempPath();
+        public function testQueryHistoryCaptureRecordsSql()
+        {
+            $path = $this->tempPath();
             $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
 
             (new Hook())->start($this->config($path, array(
@@ -124,27 +124,27 @@ namespace CoffeeR\Unearther\Tests\Unit {
             $this->assertArrayNotHasKey('request_shape', $http);
 
             (new Hook())->finish();
-        $this->assertFileDoesNotExist($path);
-    }
+            $this->assertFileDoesNotExist($path);
+        }
 
-    public function testResponseShapeIsSkippedByDefault()
-    {
-        $path = $this->tempPath();
-        $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
-            'application/json',
-            '{"ok":true}'
-        ));
+        public function testResponseShapeIsSkippedByDefault()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+                'application/json',
+                '{"ok":true}'
+            ));
 
-        (new Hook())->start($this->config($path));
-        (new Hook())->finish();
+            (new Hook())->start($this->config($path));
+            (new Hook())->finish();
 
-        $trace = $this->readTrace($path);
-        $this->assertArrayNotHasKey('response_shape', $trace['http']);
-    }
+            $trace = $this->readTrace($path);
+            $this->assertArrayNotHasKey('response_shape', $trace['http']);
+        }
 
-    public function testResponseShapeIsCapturedOnlyWhenExplicitlyEnabled()
-    {
-        $path = $this->tempPath();
+        public function testResponseShapeIsCapturedOnlyWhenExplicitlyEnabled()
+        {
+            $path = $this->tempPath();
             $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
                 'application/json; charset=utf-8',
                 '{"ok":true,"items":[{"id":1},{"name":"coffee"}]}'
