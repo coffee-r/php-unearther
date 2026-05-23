@@ -1,10 +1,10 @@
 <?php
 
-namespace CoffeeR\Unearther;
+namespace CoffeeR\Unearth;
 
-use CoffeeR\Unearther\Sampling\Sampler;
-use CoffeeR\Unearther\Sink\SinkInterface;
-use CoffeeR\Unearther\Sink\NullSink;
+use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Unearth\Sink\SinkInterface;
+use CoffeeR\Unearth\Sink\NullSink;
 
 class Collector
 {

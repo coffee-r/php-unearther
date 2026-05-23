@@ -1,11 +1,11 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Adapter\CodeIgniter3\ObservedDb;
-use CoffeeR\Unearther\Collector;
-use CoffeeR\Unearther\Sampling\Sampler;
-use CoffeeR\Unearther\Sink\SinkInterface;
+use CoffeeR\Unearth\Adapter\CodeIgniter3\ObservedDb;
+use CoffeeR\Unearth\Collector;
+use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Unearth\Sink\SinkInterface;
 use PHPUnit\Framework\TestCase;
 
 class ObservedDbTest extends TestCase

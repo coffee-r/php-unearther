@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Sql;
+namespace CoffeeR\Unearth\Sql;
 
-use CoffeeR\Unearther\Redaction\Redactor;
+use CoffeeR\Unearth\Redaction\Redactor;
 
 class SqlAnalyzer
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Http;
+namespace CoffeeR\Unearth\Http;
 
-use CoffeeR\Unearther\Shape\ShapeExtractor;
+use CoffeeR\Unearth\Shape\ShapeExtractor;
 
 class JsonBodyShapeExtractor
 {

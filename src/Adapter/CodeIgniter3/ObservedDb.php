@@ -1,9 +1,9 @@
 <?php
 
-namespace CoffeeR\Unearther\Adapter\CodeIgniter3;
+namespace CoffeeR\Unearth\Adapter\CodeIgniter3;
 
-use CoffeeR\Unearther\Collector;
-use CoffeeR\Unearther\Sql\SqlAnalyzer;
+use CoffeeR\Unearth\Collector;
+use CoffeeR\Unearth\Sql\SqlAnalyzer;
 
 class ObservedDb
 {

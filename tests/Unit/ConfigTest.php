@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Config;
+use CoffeeR\Unearth\Config;
 use PHPUnit\Framework\TestCase;
 
 class ConfigTest extends TestCase
@@ -16,7 +16,7 @@ class ConfigTest extends TestCase
             'framework' => 'codeigniter3',
             'sample_rate' => 0.25,
             'sink' => array(
-                'path' => '/tmp/unearther-{date}.jsonl',
+                'path' => '/tmp/unearth-{date}.jsonl',
             ),
         ));
 
@@ -26,7 +26,7 @@ class ConfigTest extends TestCase
         $this->assertSame(0.25, $config->sampleRate());
         $this->assertSame('throw', $config->failureMode());
         $this->assertSame('jsonl', $config->sinkType());
-        $this->assertSame('/tmp/unearther-{date}.jsonl', $config->sinkPath());
+        $this->assertSame('/tmp/unearth-{date}.jsonl', $config->sinkPath());
         $this->assertSame('Y-m-d', $config->sinkDateFormat());
         $this->assertTrue($config->codeIgniter3CaptureQueryHistory());
         $this->assertSame('sampled_query_history', $config->codeIgniter3SqlCapture());

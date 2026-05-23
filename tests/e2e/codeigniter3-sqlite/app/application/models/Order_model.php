@@ -2,8 +2,8 @@
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
-use CoffeeR\Unearther\Guzzle\UneartherMiddleware;
+use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
+use CoffeeR\Unearth\Guzzle\UnearthMiddleware;
 use GuzzleHttp\Client;
 use GuzzleHttp\HandlerStack;
 
@@ -108,7 +108,7 @@ class Order_model extends CI_Model
     {
         $stack = HandlerStack::create();
         if (Hook::collector()) {
-            $stack->push(UneartherMiddleware::create(Hook::collector()));
+            $stack->push(UnearthMiddleware::create(Hook::collector()));
         }
 
         $client = new Client(array(

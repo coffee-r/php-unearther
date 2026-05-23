@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther;
+namespace CoffeeR\Unearth;
 
 class Trace
 {

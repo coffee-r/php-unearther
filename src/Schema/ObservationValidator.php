@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Schema;
+namespace CoffeeR\Unearth\Schema;
 
 class ObservationValidator
 {

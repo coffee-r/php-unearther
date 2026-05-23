@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Http;
+namespace CoffeeR\Unearth\Http;
 
 class EndpointPatternMatcher
 {

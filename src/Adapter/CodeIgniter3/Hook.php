@@ -1,17 +1,17 @@
 <?php
 
-namespace CoffeeR\Unearther\Adapter\CodeIgniter3;
+namespace CoffeeR\Unearth\Adapter\CodeIgniter3;
 
-use CoffeeR\Unearther\Collector;
-use CoffeeR\Unearther\Config;
-use CoffeeR\Unearther\FailureHandler;
-use CoffeeR\Unearther\Http\EndpointPatternMatcher;
-use CoffeeR\Unearther\Http\JsonBodyShapeExtractor;
-use CoffeeR\Unearther\Redaction\Redactor;
-use CoffeeR\Unearther\Sampling\Sampler;
-use CoffeeR\Unearther\Shape\ShapeExtractor;
-use CoffeeR\Unearther\Sink\JsonlSink;
-use CoffeeR\Unearther\Sql\SqlAnalyzer;
+use CoffeeR\Unearth\Collector;
+use CoffeeR\Unearth\Config;
+use CoffeeR\Unearth\FailureHandler;
+use CoffeeR\Unearth\Http\EndpointPatternMatcher;
+use CoffeeR\Unearth\Http\JsonBodyShapeExtractor;
+use CoffeeR\Unearth\Redaction\Redactor;
+use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Unearth\Shape\ShapeExtractor;
+use CoffeeR\Unearth\Sink\JsonlSink;
+use CoffeeR\Unearth\Sql\SqlAnalyzer;
 
 class Hook
 {

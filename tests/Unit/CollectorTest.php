@@ -1,11 +1,11 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Collector;
-use CoffeeR\Unearther\FailureHandler;
-use CoffeeR\Unearther\Sampling\Sampler;
-use CoffeeR\Unearther\Sink\SinkInterface;
+use CoffeeR\Unearth\Collector;
+use CoffeeR\Unearth\FailureHandler;
+use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Unearth\Sink\SinkInterface;
 use PHPUnit\Framework\TestCase;
 
 class CollectorTest extends TestCase
@@ -69,7 +69,7 @@ class CollectorTest extends TestCase
 
         $this->assertNotNull($trace);
         $this->assertCount(1, $messages);
-        $this->assertStringContainsString('[php-unearther] sink write failed: RuntimeException', $messages[0]);
+        $this->assertStringContainsString('[php-unearth] sink write failed: RuntimeException', $messages[0]);
     }
 }
 

@@ -1,6 +1,6 @@
 <?php
 
-use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
+use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
 
 class MY_Loader extends CI_Loader
 {

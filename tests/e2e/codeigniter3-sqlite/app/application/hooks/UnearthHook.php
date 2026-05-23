@@ -1,8 +1,8 @@
 <?php
 
-use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
+use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
 
-class UneartherHook
+class UnearthHook
 {
     private $hook;
 
@@ -26,7 +26,7 @@ class UneartherHook
 
     private function mark($event)
     {
-        if (!getenv('UNEARTHER_E2E_HOOK_MARKERS')) {
+        if (!getenv('UNEARTH_E2E_HOOK_MARKERS')) {
             return;
         }
 

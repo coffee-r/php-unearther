@@ -1,10 +1,10 @@
 <?php
 
-namespace CoffeeR\Unearther\Guzzle;
+namespace CoffeeR\Unearth\Guzzle;
 
-use CoffeeR\Unearther\Collector;
+use CoffeeR\Unearth\Collector;
 
-class UneartherMiddleware
+class UnearthMiddleware
 {
     public static function create(Collector $collector)
     {
@@ -75,7 +75,7 @@ class UneartherMiddleware
             if (!isset($frame['file'])) {
                 continue;
             }
-            if (strpos($frame['file'], 'UneartherMiddleware.php') !== false) {
+            if (strpos($frame['file'], 'UnearthMiddleware.php') !== false) {
                 continue;
             }
 

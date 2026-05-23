@@ -2,14 +2,14 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use CoffeeR\Unearther\Schema\ObservationValidator;
+use CoffeeR\Unearth\Schema\ObservationValidator;
 
 $root = dirname(__DIR__);
 $logFiles = glob($root . '/runtime/logs/*.jsonl');
 assertTrue(count($logFiles) === 1, 'expected exactly one JSONL log file');
 
 $traces = array();
-$validator = new ObservationValidator($root . '/vendor/coffee-r/php-unearther/docs/schema/observation-v1.schema.json');
+$validator = new ObservationValidator($root . '/vendor/coffee-r/php-unearth/docs/schema/observation-v1.schema.json');
 foreach (file($logFiles[0], FILE_IGNORE_NEW_LINES) as $line) {
     if (trim($line) === '') {
         continue;

@@ -1,5 +1,5 @@
 {
-  "name": "coffee-r/php-unearther",
+  "name": "coffee-r/php-unearth",
   "description": "Observed behavior reporting for legacy PHP API migrations.",
   "type": "library",
   "license": "MIT",
@@ -14,12 +14,12 @@
   },
   "autoload": {
     "psr-4": {
-      "CoffeeR\\Unearther\\": "src/"
+      "CoffeeR\\Unearth\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "CoffeeR\\Unearther\\Tests\\": "tests/"
+      "CoffeeR\\Unearth\\Tests\\": "tests/"
     }
   },
   "bin": [

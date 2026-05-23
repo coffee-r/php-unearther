@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Export;
+namespace CoffeeR\Unearth\Export;
 
 class RedactedExporter
 {

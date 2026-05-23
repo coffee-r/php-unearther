@@ -1,15 +1,15 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Sink\JsonlSink;
+use CoffeeR\Unearth\Sink\JsonlSink;
 use PHPUnit\Framework\TestCase;
 
 class JsonlSinkTest extends TestCase
 {
     public function testWritesOneTracePerLine()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-unearth-test-' . uniqid('', true) . '.jsonl';
         $sink = new JsonlSink($path);
 
         $sink->write(array('trace_id' => 'a'));
@@ -25,7 +25,7 @@ class JsonlSinkTest extends TestCase
 
     public function testRotatesPathByTraceDate()
     {
-        $base = sys_get_temp_dir() . '/php-unearther-test-' . uniqid('', true);
+        $base = sys_get_temp_dir() . '/php-unearth-test-' . uniqid('', true);
         $path = $base . '/observations-{date}.jsonl';
         $sink = new JsonlSink($path);
 
@@ -47,7 +47,7 @@ class JsonlSinkTest extends TestCase
 
     public function testThrowsWhenWriteFails()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-sink-dir-' . uniqid('', true);
+        $path = sys_get_temp_dir() . '/php-unearth-sink-dir-' . uniqid('', true);
         mkdir($path);
         $sink = new JsonlSink($path);
 

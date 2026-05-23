@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Report;
+namespace CoffeeR\Unearth\Report;
 
 class MarkdownRenderer
 {

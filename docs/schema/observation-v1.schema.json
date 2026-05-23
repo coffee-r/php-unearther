@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/coffee-r/php-unearther/docs/schema/observation-v1.schema.json",
-  "title": "php-unearther observation v1",
+  "$id": "https://github.com/coffee-r/php-unearth/docs/schema/observation-v1.schema.json",
+  "title": "php-unearth observation v1",
   "type": "object",
   "required": ["schema_version", "trace_id", "service", "framework", "environment", "sampled", "sample_rate", "started_at", "redaction", "http", "sql", "external_http", "errors"],
   "properties": {

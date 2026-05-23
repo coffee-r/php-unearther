@@ -2,12 +2,12 @@
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$uneartherConfig = array(
+$unearthConfig = array(
     'service' => 'ci3-sqlite-e2e',
     'environment' => 'e2e',
     'sample_rate' => 1.0,
     'sink' => array(
-        'path' => FCPATH . 'runtime/logs/unearther-{date}.jsonl',
+        'path' => FCPATH . 'runtime/logs/unearth-{date}.jsonl',
     ),
     'codeigniter3' => array(
         'sql_capture' => 'sampled_query_history',
@@ -25,17 +25,17 @@ $uneartherConfig = array(
 );
 
 $hook['post_controller_constructor'][] = array(
-    'class' => 'UneartherHook',
+    'class' => 'UnearthHook',
     'function' => 'start',
-    'filename' => 'UneartherHook.php',
+    'filename' => 'UnearthHook.php',
     'filepath' => 'hooks',
-    'params' => $uneartherConfig,
+    'params' => $unearthConfig,
 );
 
 $hook['post_system'][] = array(
-    'class' => 'UneartherHook',
+    'class' => 'UnearthHook',
     'function' => 'finish',
-    'filename' => 'UneartherHook.php',
+    'filename' => 'UnearthHook.php',
     'filepath' => 'hooks',
     'params' => array(),
 );

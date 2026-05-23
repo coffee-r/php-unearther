@@ -1,11 +1,11 @@
 {
-  "name": "coffee-r/php-unearther-ci3-sqlite-fixture",
-  "description": "CodeIgniter3 SQLite e2e fixture for php-unearther.",
+  "name": "coffee-r/php-unearth-ci3-sqlite-fixture",
+  "description": "CodeIgniter3 SQLite e2e fixture for php-unearth.",
   "type": "project",
   "repositories": [
     {
       "type": "path",
-      "url": "/workspace/php-unearther",
+      "url": "/workspace/php-unearth",
       "options": {
         "symlink": false
       }
@@ -14,7 +14,7 @@
   "require": {
     "php": ">=7.3",
     "codeigniter/framework": "^3.1",
-    "coffee-r/php-unearther": "*",
+    "coffee-r/php-unearth": "*",
     "guzzlehttp/guzzle": "^7.4"
   },
   "minimum-stability": "dev",

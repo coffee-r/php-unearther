@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
@@ -21,7 +21,7 @@ class CliTest extends TestCase
 
     public function testReportCommandWarnsAboutInvalidJsonl()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-cli-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-unearth-cli-test-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, "not-json\n");
 
         $command = $this->command('report ' . escapeshellarg($path) . ' --format md 2>&1');
@@ -60,7 +60,7 @@ class CliTest extends TestCase
 
     public function testReportCommandSupportsRawValueMode()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-cli-raw-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-unearth-cli-raw-test-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, json_encode(array(
             'schema_version' => 1,
             'trace_id' => 'raw',

@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Sampling;
+namespace CoffeeR\Unearth\Sampling;
 
 class Sampler
 {

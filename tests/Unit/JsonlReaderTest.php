@@ -1,15 +1,15 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Report\JsonlReader;
+use CoffeeR\Unearth\Report\JsonlReader;
 use PHPUnit\Framework\TestCase;
 
 class JsonlReaderTest extends TestCase
 {
     public function testCollectsWarningsForMissingAndInvalidJsonl()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-reader-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-unearth-reader-test-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, "{\"trace_id\":\"ok\"}\nnot-json\n");
 
         $reader = new JsonlReader();
@@ -26,7 +26,7 @@ class JsonlReaderTest extends TestCase
 
     public function testWarnsWhenLineIsValidJsonButNotAnObjectOrArray()
     {
-        $path = sys_get_temp_dir() . '/php-unearther-reader-nonobj-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-unearth-reader-nonobj-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, "\"plain string\"\n42\ntrue\n{\"trace_id\":\"ok\"}\n");
 
         $reader = new JsonlReader();

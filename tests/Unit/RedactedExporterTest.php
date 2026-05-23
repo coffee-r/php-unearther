@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Export\RedactedExporter;
+use CoffeeR\Unearth\Export\RedactedExporter;
 use PHPUnit\Framework\TestCase;
 
 class RedactedExporterTest extends TestCase

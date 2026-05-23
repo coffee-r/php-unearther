@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Sink;
+namespace CoffeeR\Unearth\Sink;
 
 interface SinkInterface
 {

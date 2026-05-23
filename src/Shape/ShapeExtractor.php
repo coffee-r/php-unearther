@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearther\Shape;
+namespace CoffeeR\Unearth\Shape;
 
 class ShapeExtractor
 {

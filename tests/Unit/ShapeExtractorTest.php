@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Shape\ShapeExtractor;
+use CoffeeR\Unearth\Shape\ShapeExtractor;
 use PHPUnit\Framework\TestCase;
 
 class ShapeExtractorTest extends TestCase

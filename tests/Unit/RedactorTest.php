@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Redaction\Redactor;
+use CoffeeR\Unearth\Redaction\Redactor;
 use PHPUnit\Framework\TestCase;
 
 class RedactorTest extends TestCase

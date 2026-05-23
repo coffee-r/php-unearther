@@ -1,11 +1,11 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Collector;
-use CoffeeR\Unearther\Guzzle\UneartherMiddleware;
-use CoffeeR\Unearther\Sampling\Sampler;
-use CoffeeR\Unearther\Sink\SinkInterface;
+use CoffeeR\Unearth\Collector;
+use CoffeeR\Unearth\Guzzle\UnearthMiddleware;
+use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Unearth\Sink\SinkInterface;
 use PHPUnit\Framework\TestCase;
 
 class GuzzleMiddlewareTest extends TestCase
@@ -16,7 +16,7 @@ class GuzzleMiddlewareTest extends TestCase
         $collector = new Collector(new Sampler(1.0), $sink);
         $collector->start('legacy-api', 'codeigniter3');
 
-        $middleware = UneartherMiddleware::create($collector);
+        $middleware = UnearthMiddleware::create($collector);
         $handler = $middleware(function ($request, array $options) {
             return new GuzzleResponseStub(201);
         });
@@ -39,7 +39,7 @@ class GuzzleMiddlewareTest extends TestCase
         $collector = new Collector(new Sampler(1.0), $sink);
         $collector->start('legacy-api', 'codeigniter3');
 
-        $middleware = UneartherMiddleware::create($collector);
+        $middleware = UnearthMiddleware::create($collector);
         $handler = $middleware(function ($request, array $options) {
             return new GuzzleFulfilledPromiseStub(new GuzzleResponseStub(202));
         });
@@ -57,7 +57,7 @@ class GuzzleMiddlewareTest extends TestCase
         $collector = new Collector(new Sampler(1.0), $sink);
         $collector->start('legacy-api', 'codeigniter3');
 
-        $middleware = UneartherMiddleware::create($collector);
+        $middleware = UnearthMiddleware::create($collector);
         $handler = $middleware(function ($request, array $options) {
             return new GuzzleRejectedPromiseStub(new \RuntimeException('network failed'));
         });

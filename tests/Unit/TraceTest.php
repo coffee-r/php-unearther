@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearther\Tests\Unit;
+namespace CoffeeR\Unearth\Tests\Unit;
 
-use CoffeeR\Unearther\Trace;
+use CoffeeR\Unearth\Trace;
 use PHPUnit\Framework\TestCase;
 
 class TraceTest extends TestCase
