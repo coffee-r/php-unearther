@@ -1,13 +1,30 @@
 #!/usr/bin/env php
 <?php
 
-require_once __DIR__ . '/../src/Report/JsonlReader.php';
-require_once __DIR__ . '/../src/Report/Aggregator.php';
-require_once __DIR__ . '/../src/Report/MarkdownRenderer.php';
-
 use CoffeeR\Unearther\Report\Aggregator;
 use CoffeeR\Unearther\Report\JsonlReader;
 use CoffeeR\Unearther\Report\MarkdownRenderer;
+
+$autoloadPaths = array();
+if (isset($_composer_autoload_path)) {
+    $autoloadPaths[] = $_composer_autoload_path;
+}
+$autoloadPaths[] = __DIR__ . '/../vendor/autoload.php';
+$autoloadPaths[] = __DIR__ . '/../../../autoload.php';
+
+$autoloaded = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (is_file($autoloadPath)) {
+        require_once $autoloadPath;
+        $autoloaded = true;
+        break;
+    }
+}
+
+if (!$autoloaded) {
+    fwrite(STDERR, "Unable to find Composer autoload.php. Run composer install first.\n");
+    exit(1);
+}
 
 $argv = $_SERVER['argv'];
 array_shift($argv);
@@ -37,7 +54,11 @@ if (count($paths) === 0) {
 
 $reader = new JsonlReader();
 $aggregator = new Aggregator();
-$report = $aggregator->aggregate($reader->read($paths));
+$traces = $reader->read($paths);
+foreach ($reader->warnings() as $warning) {
+    fwrite(STDERR, "Warning: " . $warning . "\n");
+}
+$report = $aggregator->aggregate($traces);
 
 if ($format === 'json') {
     echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";

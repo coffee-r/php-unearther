@@ -8,11 +8,21 @@ class Config
 
     public function __construct(array $values = array())
     {
+        $values = $this->normalizeValues($values);
         $this->values = array_merge(self::defaults(), $values);
 
         if (isset($this->values['sink']) && is_array($this->values['sink'])) {
             $this->values['sink'] = array_merge(self::defaults()['sink'], $this->values['sink']);
         }
+        if (isset($this->values['codeigniter3']) && is_array($this->values['codeigniter3'])) {
+            $this->values['codeigniter3'] = array_merge(self::defaults()['codeigniter3'], $this->values['codeigniter3']);
+        }
+        if (isset($this->values['http']) && is_array($this->values['http'])) {
+            $this->values['http'] = array_merge(self::defaults()['http'], $this->values['http']);
+        }
+
+        $this->values['codeigniter3']['sql_capture'] = $this->normalizeSqlCapture($this->values['codeigniter3']['sql_capture']);
+        $this->values['http']['max_body_bytes'] = max(0, (int) $this->values['http']['max_body_bytes']);
     }
 
     public static function defaults()
@@ -26,6 +36,14 @@ class Config
                 'type' => 'jsonl',
                 'path' => sys_get_temp_dir() . '/php-unearther/observations-{date}.jsonl',
                 'date_format' => 'Y-m-d',
+            ),
+            'codeigniter3' => array(
+                'sql_capture' => 'query_history',
+            ),
+            'http' => array(
+                'capture_json_request_shape' => true,
+                'capture_json_response_shape' => false,
+                'max_body_bytes' => 65536,
             ),
         );
     }
@@ -70,8 +88,56 @@ class Config
         return $this->values['sink']['date_format'];
     }
 
+    public function codeIgniter3CaptureQueryHistory()
+    {
+        return $this->codeIgniter3SqlCapture() === 'query_history';
+    }
+
+    public function codeIgniter3SqlCapture()
+    {
+        return $this->values['codeigniter3']['sql_capture'];
+    }
+
+    public function captureJsonRequestShape()
+    {
+        return (bool) $this->values['http']['capture_json_request_shape'];
+    }
+
+    public function captureJsonResponseShape()
+    {
+        return (bool) $this->values['http']['capture_json_response_shape'];
+    }
+
+    public function maxBodyBytes()
+    {
+        return (int) $this->values['http']['max_body_bytes'];
+    }
+
     public function toArray()
     {
         return $this->values;
+    }
+
+    private function normalizeValues(array $values)
+    {
+        if (isset($values['codeigniter3']) && is_array($values['codeigniter3'])) {
+            $legacy = $values['codeigniter3'];
+            if (array_key_exists('capture_query_history', $legacy) && !array_key_exists('sql_capture', $legacy)) {
+                $values['codeigniter3']['sql_capture'] = $legacy['capture_query_history'] ? 'query_history' : 'none';
+            }
+            unset($values['codeigniter3']['capture_query_history']);
+        }
+
+        return $values;
+    }
+
+    private function normalizeSqlCapture($value)
+    {
+        $value = strtolower((string) $value);
+        if (in_array($value, array('query_history', 'observed_db', 'none'), true)) {
+            return $value;
+        }
+
+        return self::defaults()['codeigniter3']['sql_capture'];
     }
 }

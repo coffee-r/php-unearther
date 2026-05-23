@@ -12,6 +12,8 @@ It is not an APM replacement. The goal is to help answer questions such as:
 
 The first implementation target is CodeIgniter3 on PHP 7.3. The core schema is intended to be reused later by a Laravel 11 adapter.
 
+The core package supports PHP 7.3 and newer runtimes. It avoids PHP 8-only syntax so it can be installed into older CodeIgniter3 applications while still allowing PHP 8 projects to consume the same report tooling.
+
 ## Motivation
 
 Legacy API migrations often start with incomplete or outdated specifications. Reading source code helps, but it does not always reveal which branches are actually used in production, which SQL patterns appear for each endpoint, or which external services are involved.
@@ -108,21 +110,62 @@ array(
         'path' => APPPATH . 'logs/unearther-{date}.jsonl',
         'date_format' => 'Y-m-d',
     ),
+    'codeigniter3' => array(
+        'sql_capture' => 'query_history',
+    ),
+    'http' => array(
+        'capture_json_request_shape' => true,
+        'capture_json_response_shape' => false,
+        'max_body_bytes' => 65536,
+    ),
 )
 ```
 
 For CodeIgniter3, pass this array through hook params. A future Laravel adapter can use the same keys from `config/unearther.php`.
 
+`codeigniter3.sql_capture` can be `query_history`, `observed_db`, or `none`. The older `codeigniter3.capture_query_history` key is still accepted as a compatibility alias.
+
 ## CodeIgniter3 Usage
 
-Register the lifecycle hook in `application/config/hooks.php`.
+CodeIgniter3 does not natively assume namespaced Composer classes in hook definitions. The safest setup is to create a small bridge hook inside the application and let that bridge call php-unearther.
+
+Create `application/hooks/UneartherHook.php`:
+
+```php
+<?php
+
+use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
+
+class UneartherHook
+{
+    private $hook;
+
+    public function __construct()
+    {
+        require_once FCPATH . 'vendor/autoload.php';
+        $this->hook = new Hook();
+    }
+
+    public function start($config = array())
+    {
+        $this->hook->start($config);
+    }
+
+    public function finish($config = array())
+    {
+        $this->hook->finish($config);
+    }
+}
+```
+
+Then register the bridge in `application/config/hooks.php`.
 
 ```php
 $hook['pre_system'][] = array(
-    'class' => 'CoffeeR\\Unearther\\Adapter\\CodeIgniter3\\Hook',
+    'class' => 'UneartherHook',
     'function' => 'start',
-    'filename' => '',
-    'filepath' => '',
+    'filename' => 'UneartherHook.php',
+    'filepath' => 'hooks',
     'params' => array(array(
         'service' => 'legacy-api',
         'sample_rate' => 0.01,
@@ -133,15 +176,33 @@ $hook['pre_system'][] = array(
 );
 
 $hook['post_system'][] = array(
-    'class' => 'CoffeeR\\Unearther\\Adapter\\CodeIgniter3\\Hook',
+    'class' => 'UneartherHook',
     'function' => 'finish',
-    'filename' => '',
-    'filepath' => '',
+    'filename' => 'UneartherHook.php',
+    'filepath' => 'hooks',
     'params' => array(),
 );
 ```
 
-Wrap the CodeIgniter DB object at an application bootstrap point you control.
+### CodeIgniter3 SQL Capture
+
+By default, the CodeIgniter3 hook uses `sql_capture => query_history` and reads `$CI->db->queries` and `$CI->db->query_times` at the end of sampled requests. This is intentionally used as the first capture strategy because it can observe SQL produced by Query Builder calls such as `where()`, `get()`, `insert()`, and direct `query()` calls, as long as CodeIgniter's `save_queries` setting is enabled.
+
+This strategy has tradeoffs:
+
+- It depends on CodeIgniter query history being available
+- It does not provide precise caller file/line information
+- It may increase memory usage if many queries are executed in one request
+
+You can disable SQL capture:
+
+```php
+'codeigniter3' => array(
+    'sql_capture' => 'none',
+)
+```
+
+An experimental DB wrapper is also available for application bootstrap points you control.
 
 ```php
 use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
@@ -151,7 +212,40 @@ $CI =& get_instance();
 $CI->db = new ObservedDb($CI->db, Hook::collector());
 ```
 
-The wrapper records calls made through `query()`. Other DB entry points may need additional wrapping depending on the application.
+When using `ObservedDb`, set `sql_capture => observed_db` so the hook does not also record CodeIgniter query history.
+
+```php
+'codeigniter3' => array(
+    'sql_capture' => 'observed_db',
+)
+```
+
+The wrapper records calls made through `query()`, but it is not a complete Query Builder interception strategy. In many CI3 applications, query history capture is the more practical baseline.
+
+### HTTP Shape Capture
+
+For sampled requests, the CodeIgniter3 hook records `query_shape` and `request_shape`. If the request content type is `application/json` or a structured `+json` type, php-unearther decodes the body and records the JSON shape. If the body is invalid JSON, too large, or not JSON, it falls back to `$_POST` shape.
+
+Response body shape capture is off by default. Enable it only after reviewing the response surface:
+
+```php
+'http' => array(
+    'capture_json_response_shape' => true,
+    'max_body_bytes' => 65536,
+)
+```
+
+When enabled, the CodeIgniter3 hook reads `$CI->output->get_output()` for sampled responses with a JSON content type and records only the response shape.
+
+## Trace IDs
+
+Each sampled request receives a generated trace ID when observation starts. The ID contains a UTC timestamp prefix and a 128-bit random suffix:
+
+```text
+20260601T101122-3f4e3f8b9c0d4d67a1b2c3d4e5f60718
+```
+
+This keeps IDs sortable by start time while making collisions practically unlikely for normal sampling volumes.
 
 ## Log Rotation
 
@@ -217,8 +311,11 @@ php bin/unearth report tests/Fixtures/jsonl/cart_add.jsonl --format md
 The test suite is fixture-driven and focuses on deterministic behavior:
 
 - shape extraction
+- JSON request and response shape extraction
 - SQL operation/table extraction
+- CodeIgniter3 hook lifecycle behavior
 - JSONL writing
+- CLI warning behavior
 - endpoint aggregation
 - execution pattern grouping
 - Markdown rendering

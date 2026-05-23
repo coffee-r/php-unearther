@@ -28,7 +28,13 @@ class Trace
 
     public static function generateTraceId()
     {
-        return gmdate('Ymd\THis') . '-' . substr(bin2hex(random_bytes(4)), 0, 8);
+        try {
+            $random = bin2hex(random_bytes(16));
+        } catch (\Exception $exception) {
+            $random = str_replace('.', '', uniqid('', true));
+        }
+
+        return gmdate('Ymd\THis') . '-' . $random;
     }
 
     public function isSampled()

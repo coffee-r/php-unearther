@@ -12,7 +12,13 @@ class ShapeExtractor
                     return 'array';
                 }
 
-                return array($this->extract(reset($value)));
+                $shape = null;
+                foreach ($value as $item) {
+                    $itemShape = $this->extract($item);
+                    $shape = $shape === null ? $itemShape : $this->mergeShape($shape, $itemShape);
+                }
+
+                return array($shape);
             }
 
             $shape = array();
@@ -46,5 +52,22 @@ class ShapeExtractor
         }
 
         return array_keys($value) === range(0, count($value) - 1);
+    }
+
+    private function mergeShape($left, $right)
+    {
+        if (!is_array($left) || !is_array($right)) {
+            return $left === $right ? $left : 'mixed';
+        }
+
+        foreach ($right as $key => $value) {
+            if (!array_key_exists($key, $left)) {
+                $left[$key] = $value;
+            } else {
+                $left[$key] = $this->mergeShape($left[$key], $value);
+            }
+        }
+
+        return $left;
     }
 }

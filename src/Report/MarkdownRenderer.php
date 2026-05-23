@@ -26,7 +26,7 @@ class MarkdownRenderer
             $lines[] = '| Status | Count |';
             $lines[] = '|---|---:|';
             foreach ($endpoint['status_codes'] as $status => $count) {
-                $lines[] = '| ' . $status . ' | ' . $count . ' |';
+                $lines[] = '| ' . $this->tableCell($status) . ' | ' . $this->tableCell($count) . ' |';
             }
             $lines[] = '';
             $lines[] = '### Request Shape';
@@ -42,7 +42,7 @@ class MarkdownRenderer
             $lines[] = '| Pattern | Count | Status | SQL Flow | Tables | External Calls |';
             $lines[] = '|---|---:|---|---|---|---|';
             foreach ($endpoint['patterns'] as $pattern) {
-                $lines[] = '| ' . $pattern['pattern_id'] . ' | ' . $pattern['count'] . ' | ' . implode(', ', $pattern['statuses']) . ' | ' . $this->sqlFlowLabel($pattern['sql_flow']) . ' | ' . implode(', ', $pattern['tables']) . ' | ' . $this->externalLabel($pattern['external_http']) . ' |';
+                $lines[] = '| ' . $this->tableCell($pattern['pattern_id']) . ' | ' . $this->tableCell($pattern['count']) . ' | ' . $this->tableCell(implode(', ', $pattern['statuses'])) . ' | ' . $this->tableCell($this->sqlFlowLabel($pattern['sql_flow'])) . ' | ' . $this->tableCell(implode(', ', $pattern['tables'])) . ' | ' . $this->tableCell($this->externalLabel($pattern['external_http'])) . ' |';
             }
             $lines[] = '';
 
@@ -57,7 +57,7 @@ class MarkdownRenderer
                 $lines[] = '| Step | Operation | Tables | Count | Example Source |';
                 $lines[] = '|---:|---|---|---:|---|';
                 foreach ($pattern['sql_flow'] as $step) {
-                    $lines[] = '| ' . $step['step'] . ' | ' . $step['operation'] . ' | ' . implode(', ', $step['tables']) . ' | ' . $step['count'] . ' | ' . $step['example_source'] . ' |';
+                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
                 }
                 if (count($pattern['sql_flow']) === 0) {
                     $lines[] = '| - | - | - | 0 | - |';
@@ -75,7 +75,7 @@ class MarkdownRenderer
         $lines[] = '| Field | Type |';
         $lines[] = '|---|---|';
         foreach ($this->flattenShape($shape) as $field => $type) {
-            $lines[] = '| ' . $field . ' | ' . $type . ' |';
+            $lines[] = '| ' . $this->tableCell($field) . ' | ' . $this->tableCell($type) . ' |';
         }
         if (count($lines) === 2) {
             $lines[] = '| - | - |';
@@ -126,5 +126,15 @@ class MarkdownRenderer
         }
 
         return implode(', ', $labels);
+    }
+
+    private function tableCell($value)
+    {
+        $value = (string) $value;
+        $value = str_replace(array("\r\n", "\r", "\n"), '<br>', $value);
+        $value = str_replace('|', '\\|', $value);
+        $value = str_replace('`', '\\`', $value);
+
+        return $value;
     }
 }

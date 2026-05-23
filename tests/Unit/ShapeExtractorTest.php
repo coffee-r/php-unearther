@@ -26,4 +26,18 @@ class ShapeExtractorTest extends TestCase
             'items' => array(array('sku' => 'A', 'quantity' => 2)),
         )));
     }
+
+    public function testMergesListElementShapes()
+    {
+        $extractor = new ShapeExtractor();
+
+        $this->assertSame(array(array(
+            'sku' => 'string',
+            'quantity' => 'mixed',
+            'note' => 'string',
+        )), $extractor->extract(array(
+            array('sku' => 'A', 'quantity' => 2),
+            array('sku' => 'B', 'quantity' => 'many', 'note' => 'gift'),
+        )));
+    }
 }

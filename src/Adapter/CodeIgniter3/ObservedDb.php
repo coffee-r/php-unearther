@@ -28,6 +28,11 @@ class ObservedDb
             $result = $this->db->query($sql, $binds, $returnObject);
         }
 
+        $trace = $this->collector->current();
+        if (!$trace || !$trace->isSampled()) {
+            return $result;
+        }
+
         $bindArray = is_array($binds) ? $binds : array();
         $this->collector->addSql($this->analyzer->analyze(
             $sql,
