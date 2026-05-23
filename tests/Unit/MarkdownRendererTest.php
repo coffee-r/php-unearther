@@ -33,6 +33,32 @@ class MarkdownRendererTest extends TestCase
         $this->assertStringNotContainsString('Max duration', $markdown);
     }
 
+    public function testFlattensListShapeWithBracketNotation()
+    {
+        $renderer = new MarkdownRenderer();
+        $markdown = $renderer->render(array(
+            'generated_at' => 'now',
+            'endpoint_count' => 1,
+            'endpoints' => array(array(
+                'method' => 'GET',
+                'path' => '/items',
+                'observed_count' => 1,
+                'status_codes' => array('200' => 1),
+                'request_shape' => array(),
+                'response_shape' => array(
+                    'items' => array(array('id' => 'number', 'name' => 'string')),
+                    'total' => 'number',
+                ),
+                'patterns' => array(),
+            )),
+        ));
+
+        $this->assertStringContainsString('items[].id', $markdown);
+        $this->assertStringContainsString('items[].name', $markdown);
+        $this->assertStringNotContainsString('items.0.id', $markdown);
+        $this->assertStringNotContainsString('items.0', $markdown);
+    }
+
     public function testEscapesMarkdownTableCells()
     {
         $renderer = new MarkdownRenderer();

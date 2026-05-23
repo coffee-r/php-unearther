@@ -173,6 +173,19 @@ class MarkdownRenderer
             return $flat;
         }
 
+        if ($this->isListShape($shape)) {
+            $listPrefix = $prefix === '' ? '[]' : $prefix . '[]';
+            foreach ($shape as $value) {
+                if (is_array($value)) {
+                    $flat = array_merge($flat, $this->flattenShape($value, $listPrefix));
+                } else {
+                    $flat[$listPrefix] = (string) $value;
+                }
+            }
+
+            return $flat;
+        }
+
         foreach ($shape as $key => $value) {
             $field = $prefix === '' ? (string) $key : $prefix . '.' . $key;
             if (is_array($value)) {
@@ -183,6 +196,15 @@ class MarkdownRenderer
         }
 
         return $flat;
+    }
+
+    private function isListShape(array $shape)
+    {
+        if (empty($shape)) {
+            return false;
+        }
+
+        return array_keys($shape) === range(0, count($shape) - 1);
     }
 
     private function sqlFlowLabel(array $flow)
