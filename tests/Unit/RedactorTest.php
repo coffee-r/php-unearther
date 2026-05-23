@@ -33,4 +33,36 @@ class RedactorTest extends TestCase
         $this->assertNull($redactor->token('abc'));
         $this->assertNull($redactor->tokens(array('id' => 123)));
     }
+
+    public function testTokenizedSqlReplacesNumericAndQuotedLiterals()
+    {
+        $redactor = new Redactor('secret', 12, array());
+
+        $tokenized = $redactor->tokenizedSql("SELECT * FROM users WHERE id = 42 AND name = 'coffee'");
+
+        $this->assertMatchesRegularExpression(
+            "/^SELECT \\* FROM users WHERE id = \\{p-[a-f0-9]{12}\\} AND name = \\{p-[a-f0-9]{12}\\}$/",
+            $tokenized
+        );
+        $this->assertStringContainsString($redactor->token('42'), $tokenized);
+        $this->assertStringContainsString($redactor->token('coffee'), $tokenized);
+    }
+
+    public function testTokenizedSqlHandlesDoubledSingleQuoteEscape()
+    {
+        $redactor = new Redactor('secret', 12, array());
+
+        $tokenized = $redactor->tokenizedSql("UPDATE notes SET body = 'hello''world' WHERE id = 7");
+
+        $this->assertStringContainsString($redactor->token("hello'world"), $tokenized);
+        $this->assertStringContainsString($redactor->token('7'), $tokenized);
+        $this->assertStringNotContainsString("'", $tokenized);
+    }
+
+    public function testTokenizedSqlReturnsNullWithoutSecret()
+    {
+        $redactor = new Redactor(null, 12, array());
+
+        $this->assertNull($redactor->tokenizedSql("SELECT * FROM users WHERE id = 1"));
+    }
 }

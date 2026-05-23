@@ -1281,6 +1281,21 @@ vendor/bin/phpunit
 php bin/unearth report tests/Fixtures/jsonl/cart_add.jsonl --format md
 ```
 
+CodeIgniter3で実際に組み込めるかを確認するためのDocker e2eもあります。PHP 7.3 + CodeIgniter3 + SQLiteの小さなEC fixtureを起動し、実HTTP request、SQL query history、`MY_Loader`経由のview capture、Guzzle external HTTP、CLI export / reportまでを通します。
+
+```bash
+composer e2e:ci3-sqlite
+```
+
+このe2eはDocker imageのpull/buildとComposer installを含むため、通常のunit testより重いです。実行時はfixtureのCompose stackを作り直し、SQLite schema / seed dataを初期化してから検証します。手動でfixtureを起動してcurlする場合も、先にコンテナ内で以下を実行してください：
+
+```bash
+docker compose -f tests/e2e/codeigniter3-sqlite/docker-compose.yml -p php-unearther-ci3-sqlite exec -T --user www-data app php scripts/init-db.php
+curl -i 'http://localhost:18080/api/products?category_id=1'
+```
+
+CodeIgniter3 hookの`params`は可変長引数として展開されず、hook methodへ1引数として渡されます。そのためfixtureでは`'params' => $uneartherConfig`の形で設定配列を直接渡します。
+
 テストスイートはフィクスチャ駆動で、決定論的な動作に焦点を当てています：
 
 - shape抽出
@@ -1299,6 +1314,7 @@ php bin/unearth report tests/Fixtures/jsonl/cart_add.jsonl --format md
 - sampled query historyの`save_queries`切替
 - redaction token
 - view変数shapeと循環参照対策
+- CodeIgniter3 SQLite e2e fixtureによる実HTTP / SQL / view / Guzzle / CLI検証
 
 ## 未決事項
 

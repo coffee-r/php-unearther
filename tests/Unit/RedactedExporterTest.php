@@ -22,6 +22,30 @@ class RedactedExporterTest extends TestCase
         $this->assertSame(array('name' => '{p-a}'), $exported[0]['http']['request_tokens']);
     }
 
+    public function testPreservesEmptyShapeKeysAsJsonObject()
+    {
+        $exported = (new RedactedExporter())->export(array(array(
+            'redaction' => array('tokenized' => false),
+            'http' => array(
+                'request_shape' => array(),
+                'response_shape' => array(),
+                'query_shape' => array(),
+            ),
+            'sql' => array(array(
+                'bind_shape' => array(),
+            )),
+        )));
+
+        $this->assertInstanceOf(\stdClass::class, $exported[0]['http']['request_shape']);
+        $this->assertInstanceOf(\stdClass::class, $exported[0]['http']['response_shape']);
+        $this->assertInstanceOf(\stdClass::class, $exported[0]['http']['query_shape']);
+        $this->assertInstanceOf(\stdClass::class, $exported[0]['sql'][0]['bind_shape']);
+
+        $json = json_encode($exported[0]);
+        $this->assertStringContainsString('"request_shape":{}', $json);
+        $this->assertStringContainsString('"bind_shape":{}', $json);
+    }
+
     public function testRemovesTokenFieldsWhenTraceWasNotTokenized()
     {
         $exported = (new RedactedExporter())->export(array(array(

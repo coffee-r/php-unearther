@@ -73,6 +73,29 @@ class SqlAnalyzerTest extends TestCase
         );
     }
 
+    public function testEmitsTablesNotDetectedWarningWhenFromClauseIsAbsent()
+    {
+        $event = (new SqlAnalyzer())->analyze('SELECT 1');
+
+        $this->assertSame('SELECT', $event['operation']);
+        $this->assertSame(array(), $event['tables']);
+        $this->assertSame('high', $event['analysis']['operation_confidence']);
+        $this->assertSame('unknown', $event['analysis']['tables_confidence']);
+        $this->assertContains('tables_not_detected', $event['analysis']['warnings']);
+        $this->assertNotContains('operation_not_detected', $event['analysis']['warnings']);
+    }
+
+    public function testEmitsUnknownOperationWarningWhenStatementIsAllComment()
+    {
+        $event = (new SqlAnalyzer())->analyze('-- only comment');
+
+        $this->assertSame('UNKNOWN', $event['operation']);
+        $this->assertSame('unknown', $event['analysis']['operation_confidence']);
+        $this->assertSame('unknown', $event['analysis']['tables_confidence']);
+        $this->assertContains('operation_not_detected', $event['analysis']['warnings']);
+        $this->assertContains('tables_not_detected', $event['analysis']['warnings']);
+    }
+
     public function testAddsTokenBindRawAndAnalysisMetadata()
     {
         $analyzer = new SqlAnalyzer(true, new Redactor('secret', 12, array()), true);

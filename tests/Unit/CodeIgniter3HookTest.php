@@ -252,6 +252,42 @@ namespace CoffeeR\Unearther\Tests\Unit {
             ), $trace['http']['response_shape']);
         }
 
+        public function testHtmlContentTypeIsDetectedAsHtmlResponseKind()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+                'text/html; charset=UTF-8',
+                '<html><body>ok</body></html>'
+            ));
+
+            (new Hook())->start($this->config($path));
+            (new Hook())->finish();
+
+            $trace = $this->readTrace($path);
+            $this->assertSame('html', $trace['http']['response_kind']);
+            $this->assertSame('text/html; charset=UTF-8', $trace['http']['content_type']);
+            $this->assertSame(strlen('<html><body>ok</body></html>'), $trace['http']['response_bytes']);
+            $this->assertArrayNotHasKey('response_shape', $trace['http']);
+        }
+
+        public function testRecordViewMarksTruncatedWhenShapeExceedsMaxDepth()
+        {
+            $path = $this->tempPath();
+
+            (new Hook())->start($this->config($path, array(
+                'shape' => array('max_depth' => 2, 'max_items' => 100),
+            )));
+            Hook::recordView('orders/detail', array(
+                'order' => array('billing' => array('city' => 'Tokyo')),
+            ));
+            (new Hook())->finish();
+
+            $view = $this->readTrace($path)['http']['views'][0];
+            $this->assertSame('orders/detail', $view['name']);
+            $this->assertTrue($view['truncated']);
+            $this->assertSame('truncated_depth', $view['vars_shape']['order']['billing']);
+        }
+
         public function testEndpointPatternIsRecordedWhenConfigured()
         {
             $path = $this->tempPath();

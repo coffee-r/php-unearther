@@ -23,4 +23,23 @@ class JsonlReaderTest extends TestCase
         $this->assertStringContainsString('Invalid JSONL', $reader->warnings()[0]);
         $this->assertStringContainsString('JSONL file not found', $reader->warnings()[1]);
     }
+
+    public function testWarnsWhenLineIsValidJsonButNotAnObjectOrArray()
+    {
+        $path = sys_get_temp_dir() . '/php-unearther-reader-nonobj-' . uniqid('', true) . '.jsonl';
+        file_put_contents($path, "\"plain string\"\n42\ntrue\n{\"trace_id\":\"ok\"}\n");
+
+        $reader = new JsonlReader();
+        $traces = $reader->read(array($path));
+
+        @unlink($path);
+
+        $this->assertCount(1, $traces);
+        $this->assertSame('ok', $traces[0]['trace_id']);
+        $warnings = $reader->warnings();
+        $this->assertCount(3, $warnings);
+        foreach ($warnings as $warning) {
+            $this->assertStringContainsString('line is not a JSON object', $warning);
+        }
+    }
 }
