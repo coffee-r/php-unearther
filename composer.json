@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "test": "phpunit",
-    "e2e:ci3-sqlite": "bash tests/e2e/codeigniter3-sqlite/scripts/run.sh"
+    "e2e:ci3-sqlite": "bash tests/e2e/codeigniter3-sqlite/scripts/run.sh",
+    "e2e:ci3-pg": "bash tests/e2e/codeigniter3-postgresql/scripts/run.sh"
   }
 }

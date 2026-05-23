@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: ../../..
+      dockerfile: tests/e2e/codeigniter3-postgresql/Dockerfile
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      fake-payment:
+        condition: service_started
+    ports:
+      - "18081:80"
+    environment:
+      PAYMENT_BASE_URL: "http://fake-payment:8080"
+      UNEARTH_E2E_HOOK_MARKERS: "1"
+
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: unearth
+      POSTGRES_PASSWORD: unearth
+      POSTGRES_DB: e2e
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unearth -d e2e"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  fake-payment:
+    image: php:7.3-cli
+    working_dir: /srv/payment
+    command: php -S 0.0.0.0:8080 index.php
+    volumes:
+      - ../codeigniter3-sqlite/fake-payment:/srv/payment:ro
