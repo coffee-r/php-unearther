@@ -40,4 +40,20 @@ class ShapeExtractorTest extends TestCase
             array('sku' => 'B', 'quantity' => 'many', 'note' => 'gift'),
         )));
     }
+
+    public function testLimitsDepthItemsAndObjectRecursion()
+    {
+        $extractor = new ShapeExtractor(2, 1);
+        $object = new \stdClass();
+        $object->self = $object;
+
+        $shape = $extractor->extract(array(
+            'first' => array('nested' => array('too_deep' => true)),
+            'second' => 'skipped',
+        ));
+
+        $this->assertSame('truncated_depth', $shape['first']['nested']);
+        $this->assertSame('boolean', $shape['__truncated__']);
+        $this->assertSame(array('self' => 'recursive'), (new ShapeExtractor())->extract($object));
+    }
 }

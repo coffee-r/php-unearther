@@ -45,6 +45,62 @@ class CliTest extends TestCase
         $this->assertStringContainsString('Unknown format: xml', implode("\n", $formatOutput));
     }
 
+    public function testExportCommandWritesRedactedJsonl()
+    {
+        $command = $this->command('export ' . escapeshellarg(__DIR__ . '/../Fixtures/jsonl/cart_add.jsonl') . ' --profile ai --format jsonl 2>&1');
+
+        exec($command, $output, $exitCode);
+        $decoded = json_decode($output[0], true);
+
+        $this->assertSame(0, $exitCode, implode("\n", $output));
+        $this->assertIsArray($decoded);
+        $this->assertArrayNotHasKey('request_raw', $decoded['http']);
+        $this->assertArrayNotHasKey('statement_text', $decoded['sql'][0]);
+    }
+
+    public function testReportCommandSupportsRawValueMode()
+    {
+        $path = sys_get_temp_dir() . '/php-unearther-cli-raw-test-' . uniqid('', true) . '.jsonl';
+        file_put_contents($path, json_encode(array(
+            'schema_version' => 1,
+            'trace_id' => 'raw',
+            'service' => 'legacy-api',
+            'framework' => 'codeigniter3',
+            'environment' => 'test',
+            'sampled' => true,
+            'sample_rate' => 1.0,
+            'started_at' => '2026-06-01T00:00:00+00:00',
+            'redaction' => array('tokenized' => false, 'token_format' => null),
+            'http' => array('method' => 'GET', 'path' => '/x', 'path_pattern' => '/x', 'status' => 200),
+            'calls' => array(),
+            'sql' => array(array(
+                'seq' => 1,
+                'operation' => 'SELECT',
+                'tables' => array('USERS'),
+                'statement_normalized' => 'select * from users where id = {parameter}',
+                'statement_tokenized' => null,
+                'statement_text' => 'select * from users where id = 1',
+                'statement_hash' => 'sha256:test',
+                'bind_shape' => array(),
+                'bind_tokens' => null,
+                'bind_raw' => null,
+                'analysis' => array('analyzer' => 'regex', 'operation_confidence' => 'high', 'tables_confidence' => 'best_effort', 'warnings' => array()),
+                'caller' => array(),
+            )),
+            'external_http' => array(),
+            'errors' => array(),
+        )) . "\n");
+
+        exec($this->command('report ' . escapeshellarg($path) . ' --format md 2>&1'), $normalOutput, $normalExitCode);
+        exec($this->command('report ' . escapeshellarg($path) . ' --format md --value-mode raw 2>&1'), $rawOutput, $rawExitCode);
+        @unlink($path);
+
+        $this->assertSame(0, $normalExitCode);
+        $this->assertSame(0, $rawExitCode);
+        $this->assertStringNotContainsString('concrete:', implode("\n", $normalOutput));
+        $this->assertStringContainsString('concrete:', implode("\n", $rawOutput));
+    }
+
     private function command($arguments)
     {
         return escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../../bin/unearth') . ' ' . $arguments;

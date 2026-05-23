@@ -86,11 +86,14 @@ namespace CoffeeR\Unearther\Tests\Unit {
         public function testQueryHistoryCaptureRecordsSql()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_unearther_ci_instance']->db->save_queries = false;
 
             (new Hook())->start($this->config($path, array(
-                'codeigniter3' => array('sql_capture' => 'query_history'),
+                'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
             )));
+            $this->assertTrue($GLOBALS['__php_unearther_ci_instance']->db->save_queries);
+            $GLOBALS['__php_unearther_ci_instance']->db->queries[] = 'select * from users';
             (new Hook())->finish();
 
             $trace = $this->readTrace($path);
@@ -98,18 +101,22 @@ namespace CoffeeR\Unearther\Tests\Unit {
             $this->assertSame(array('USERS'), $trace['sql'][0]['tables']);
             $this->assertArrayNotHasKey('duration_ms', $trace['sql'][0]);
             $this->assertNull($trace['sql'][0]['statement_text']);
+            $this->assertSame('codeigniter3_query_history', $trace['sql'][0]['caller']['source']);
+            $this->assertContains('query_history_capture_has_no_precise_caller_or_bind_values', $trace['sql'][0]['analysis']['warnings']);
             $this->assertSame('select * from users', $trace['sql'][0]['statement_normalized']);
+            $this->assertFalse($GLOBALS['__php_unearther_ci_instance']->db->save_queries);
         }
 
         public function testQueryHistoryCaptureCanRecordSqlText()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(" select * from users where id = 42 and name = 'coffee' "), array(0.012), null);
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), null);
 
             (new Hook())->start($this->config($path, array(
-                'codeigniter3' => array('sql_capture' => 'query_history'),
+                'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
                 'sql' => array('capture_text' => true),
             )));
+            $GLOBALS['__php_unearther_ci_instance']->db->queries[] = " select * from users where id = 42 and name = 'coffee' ";
             (new Hook())->finish();
 
             $sql = $this->readTrace($path)['sql'][0];
@@ -130,6 +137,59 @@ namespace CoffeeR\Unearther\Tests\Unit {
 
             $trace = $this->readTrace($path);
             $this->assertSame(array(), $trace['sql']);
+        }
+
+        public function testUnsampledRequestDoesNotEnableSaveQueries()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_unearther_ci_instance']->db->save_queries = false;
+
+            (new Hook())->start($this->config($path, array(
+                'sample_rate' => 0.0,
+                'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
+            )));
+
+            $this->assertFalse($GLOBALS['__php_unearther_ci_instance']->db->save_queries);
+            (new Hook())->finish();
+        }
+
+        public function testObserveDbCapturesLaterLoadedConnection()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), null);
+            unset($GLOBALS['__php_unearther_ci_instance']->db);
+
+            (new Hook())->start($this->config($path));
+            $db = new \stdClass();
+            $db->queries = array();
+            $db->save_queries = false;
+            Hook::observeDb($db, 'reporting');
+            $this->assertTrue($db->save_queries);
+            $db->queries[] = 'select * from reports';
+            (new Hook())->finish();
+
+            $trace = $this->readTrace($path);
+            $this->assertSame('reporting', $trace['sql'][0]['caller']['db']);
+            $this->assertFalse($db->save_queries);
+        }
+
+        public function testRecordViewCapturesShapeWithoutRawValues()
+        {
+            $path = $this->tempPath();
+
+            (new Hook())->start($this->config($path, array(
+                'redaction' => array('secret' => 'test-secret'),
+            )));
+            Hook::recordView('orders/detail', array(
+                'order' => array('id' => 123, 'secret_token' => 'hidden'),
+            ));
+            (new Hook())->finish();
+
+            $view = $this->readTrace($path)['http']['views'][0];
+            $this->assertSame('orders/detail', $view['name']);
+            $this->assertSame('number', $view['vars_shape']['order']['id']);
+            $this->assertSame('{redacted}', $view['vars_tokens']['order']['secret_token']);
         }
 
         public function testUnsampledTraceDoesNotCaptureShapesOrWrite()

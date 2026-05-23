@@ -2,6 +2,7 @@
 <?php
 
 use CoffeeR\Unearther\Report\Aggregator;
+use CoffeeR\Unearther\Export\RedactedExporter;
 use CoffeeR\Unearther\Report\JsonlReader;
 use CoffeeR\Unearther\Report\MarkdownRenderer;
 
@@ -30,16 +31,29 @@ $argv = $_SERVER['argv'];
 array_shift($argv);
 
 $command = array_shift($argv);
-if ($command !== 'report') {
-    fwrite(STDERR, "Usage: unearth report <jsonl...> --format md|json\n");
+if ($command !== 'report' && $command !== 'export') {
+    fwrite(STDERR, "Usage: unearth report <jsonl...> --format md|json [--value-mode normalized|tokenized|raw]\n");
+    fwrite(STDERR, "       unearth export <jsonl...> --profile ai --format jsonl|json\n");
     exit(1);
 }
 
 $format = 'md';
+$profile = 'ai';
+$valueMode = 'normalized';
 $paths = array();
 for ($i = 0; $i < count($argv); $i++) {
     if ($argv[$i] === '--format' && isset($argv[$i + 1])) {
         $format = $argv[$i + 1];
+        $i++;
+        continue;
+    }
+    if ($argv[$i] === '--profile' && isset($argv[$i + 1])) {
+        $profile = $argv[$i + 1];
+        $i++;
+        continue;
+    }
+    if ($argv[$i] === '--value-mode' && isset($argv[$i + 1])) {
+        $valueMode = $argv[$i + 1];
         $i++;
         continue;
     }
@@ -53,11 +67,35 @@ if (count($paths) === 0) {
 }
 
 $reader = new JsonlReader();
-$aggregator = new Aggregator();
 $traces = $reader->read($paths);
 foreach ($reader->warnings() as $warning) {
     fwrite(STDERR, "Warning: " . $warning . "\n");
 }
+
+if ($command === 'export') {
+    if ($profile !== 'ai') {
+        fwrite(STDERR, "Unknown export profile: " . $profile . "\n");
+        exit(1);
+    }
+    $exporter = new RedactedExporter();
+    $exported = $exporter->export($traces);
+
+    if ($format === 'json') {
+        echo json_encode($exported, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+        exit(0);
+    }
+    if ($format === 'jsonl') {
+        foreach ($exported as $trace) {
+            echo json_encode($trace, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+        }
+        exit(0);
+    }
+
+    fwrite(STDERR, "Unknown format: " . $format . "\n");
+    exit(1);
+}
+
+$aggregator = new Aggregator($valueMode);
 $report = $aggregator->aggregate($traces);
 
 if ($format === 'json') {

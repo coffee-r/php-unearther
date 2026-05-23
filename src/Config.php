@@ -25,12 +25,28 @@ class Config
         } else {
             $this->values['sql'] = array_merge(self::defaults()['sql'], $this->values['sql']);
         }
+        if (!isset($this->values['redaction']) || !is_array($this->values['redaction'])) {
+            $this->values['redaction'] = self::defaults()['redaction'];
+        } else {
+            $this->values['redaction'] = array_merge(self::defaults()['redaction'], $this->values['redaction']);
+        }
+        if (!isset($this->values['shape']) || !is_array($this->values['shape'])) {
+            $this->values['shape'] = self::defaults()['shape'];
+        } else {
+            $this->values['shape'] = array_merge(self::defaults()['shape'], $this->values['shape']);
+        }
 
         $this->values['failure_mode'] = FailureHandler::normalizeMode($this->values['failure_mode']);
         $this->values['sample_rate'] = $this->normalizeSampleRate($this->values['sample_rate']);
         $this->values['codeigniter3']['sql_capture'] = $this->normalizeSqlCapture($this->values['codeigniter3']['sql_capture']);
         $this->values['http']['max_body_bytes'] = max(0, (int) $this->values['http']['max_body_bytes']);
         $this->values['http']['endpoint_patterns'] = $this->normalizeEndpointPatterns($this->values['http']['endpoint_patterns']);
+        $this->values['redaction']['token_length'] = max(8, min(64, (int) $this->values['redaction']['token_length']));
+        if (!is_array($this->values['redaction']['deny_keys'])) {
+            $this->values['redaction']['deny_keys'] = self::defaults()['redaction']['deny_keys'];
+        }
+        $this->values['shape']['max_depth'] = max(1, (int) $this->values['shape']['max_depth']);
+        $this->values['shape']['max_items'] = max(1, (int) $this->values['shape']['max_items']);
     }
 
     public static function defaults()
@@ -39,18 +55,29 @@ class Config
             'enabled' => true,
             'service' => 'legacy-api',
             'framework' => 'php',
+            'environment' => 'production',
             'failure_mode' => FailureHandler::MODE_THROW,
-            'sample_rate' => 1.0,
+            'sample_rate' => 0.1,
             'sink' => array(
                 'type' => 'jsonl',
                 'path' => sys_get_temp_dir() . '/php-unearther/observations-{date}.jsonl',
                 'date_format' => 'Y-m-d',
             ),
             'codeigniter3' => array(
-                'sql_capture' => 'query_history',
+                'sql_capture' => 'sampled_query_history',
             ),
             'sql' => array(
                 'capture_text' => false,
+                'capture_bind_raw' => false,
+            ),
+            'redaction' => array(
+                'secret' => null,
+                'token_length' => 12,
+                'deny_keys' => array('secret', 'token', 'password', 'passwd', 'authorization', 'cookie', 'set-cookie', 'api_key', 'apikey'),
+            ),
+            'shape' => array(
+                'max_depth' => 6,
+                'max_items' => 100,
             ),
             'http' => array(
                 'capture_json_request_shape' => true,
@@ -81,6 +108,11 @@ class Config
         return $this->values['framework'];
     }
 
+    public function environment()
+    {
+        return $this->values['environment'];
+    }
+
     public function sampleRate()
     {
         return (float) $this->values['sample_rate'];
@@ -108,7 +140,7 @@ class Config
 
     public function codeIgniter3CaptureQueryHistory()
     {
-        return $this->codeIgniter3SqlCapture() === 'query_history';
+        return $this->codeIgniter3SqlCapture() === 'sampled_query_history';
     }
 
     public function codeIgniter3SqlCapture()
@@ -119,6 +151,44 @@ class Config
     public function captureSqlText()
     {
         return (bool) $this->values['sql']['capture_text'];
+    }
+
+    public function captureBindRaw()
+    {
+        return (bool) $this->values['sql']['capture_bind_raw'];
+    }
+
+    public function redactionSecret()
+    {
+        return $this->values['redaction']['secret'];
+    }
+
+    public function redactionTokenLength()
+    {
+        return (int) $this->values['redaction']['token_length'];
+    }
+
+    public function redactionDenyKeys()
+    {
+        return $this->values['redaction']['deny_keys'];
+    }
+
+    public function redactionMeta()
+    {
+        return array(
+            'tokenized' => $this->redactionSecret() !== null && $this->redactionSecret() !== '',
+            'token_format' => $this->redactionSecret() !== null && $this->redactionSecret() !== '' ? 'hmac-sha256:' . $this->redactionTokenLength() : null,
+        );
+    }
+
+    public function shapeMaxDepth()
+    {
+        return (int) $this->values['shape']['max_depth'];
+    }
+
+    public function shapeMaxItems()
+    {
+        return (int) $this->values['shape']['max_items'];
     }
 
     public function captureJsonRequestShape()
@@ -151,7 +221,7 @@ class Config
         if (isset($values['codeigniter3']) && is_array($values['codeigniter3'])) {
             $legacy = $values['codeigniter3'];
             if (array_key_exists('capture_query_history', $legacy) && !array_key_exists('sql_capture', $legacy)) {
-                $values['codeigniter3']['sql_capture'] = $legacy['capture_query_history'] ? 'query_history' : 'none';
+                $values['codeigniter3']['sql_capture'] = $legacy['capture_query_history'] ? 'sampled_query_history' : 'none';
             }
             unset($values['codeigniter3']['capture_query_history']);
         }
@@ -175,7 +245,13 @@ class Config
     private function normalizeSqlCapture($value)
     {
         $value = strtolower((string) $value);
-        if (in_array($value, array('query_history', 'observed_db', 'none'), true)) {
+        if ($value === 'query_history') {
+            return 'sampled_query_history';
+        }
+        if ($value === 'observed_db') {
+            return 'wrapped_db';
+        }
+        if (in_array($value, array('sampled_query_history', 'wrapped_db', 'none'), true)) {
             return $value;
         }
 

@@ -3,6 +3,7 @@
 namespace CoffeeR\Unearther\Tests\Unit;
 
 use CoffeeR\Unearther\Sql\SqlAnalyzer;
+use CoffeeR\Unearther\Redaction\Redactor;
 use PHPUnit\Framework\TestCase;
 
 class SqlAnalyzerTest extends TestCase
@@ -61,5 +62,19 @@ class SqlAnalyzerTest extends TestCase
             array('T_ORDER', 'M_SHOHIN', 'T_CART'),
             $analyzer->tables('select * from T_ORDER o, M_SHOHIN s join T_CART c on c.order_id = o.id where o.id = ?')
         );
+    }
+
+    public function testAddsTokenBindRawAndAnalysisMetadata()
+    {
+        $analyzer = new SqlAnalyzer(true, new Redactor('secret', 12, array()), true);
+
+        $event = $analyzer->analyze("select * from users where id = 42 and name = 'coffee'", array(42), array('source' => 'codeigniter3_query_history'));
+
+        $this->assertMatchesRegularExpression('/\{p-[a-f0-9]{12}\}/', $event['statement_tokenized']);
+        $this->assertMatchesRegularExpression('/^\{p-[a-f0-9]{12}\}$/', $event['bind_tokens'][0]);
+        $this->assertStringContainsString($event['bind_tokens'][0], $event['statement_tokenized']);
+        $this->assertSame(array(42), $event['bind_raw']);
+        $this->assertSame('regex', $event['analysis']['analyzer']);
+        $this->assertContains('query_history_capture_has_no_precise_caller_or_bind_values', $event['analysis']['warnings']);
     }
 }

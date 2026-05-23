@@ -29,4 +29,9 @@ class Sampler
 
         return mt_rand() / mt_getrandmax() < $this->rate;
     }
+
+    public function rate()
+    {
+        return $this->rate;
+    }
 }

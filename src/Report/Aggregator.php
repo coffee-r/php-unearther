@@ -4,11 +4,27 @@ namespace CoffeeR\Unearther\Report;
 
 class Aggregator
 {
+    private $valueMode;
+
+    public function __construct($valueMode = 'normalized')
+    {
+        $valueMode = strtolower((string) $valueMode);
+        $this->valueMode = in_array($valueMode, array('normalized', 'tokenized', 'raw'), true) ? $valueMode : 'normalized';
+    }
+
     public function aggregate(array $traces)
     {
         $endpoints = array();
+        $started = array();
+        $sampleRates = array();
 
         foreach ($traces as $trace) {
+            if (isset($trace['started_at'])) {
+                $started[] = $trace['started_at'];
+            }
+            if (isset($trace['sample_rate'])) {
+                $sampleRates[(string) $trace['sample_rate']] = true;
+            }
             $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
             $method = isset($http['method']) ? strtoupper($http['method']) : 'UNKNOWN';
             $path = isset($http['path_pattern']) ? $http['path_pattern'] : (isset($http['path']) ? $http['path'] : 'unknown');
@@ -132,6 +148,11 @@ class Aggregator
         return array(
             'generated_at' => date('c'),
             'endpoint_count' => count($endpoints),
+            'trace_count' => count($traces),
+            'observed_started_at_min' => count($started) ? min($started) : null,
+            'observed_started_at_max' => count($started) ? max($started) : null,
+            'sample_rates' => array_keys($sampleRates),
+            'value_mode' => $this->valueMode,
             'endpoints' => array_values($endpoints),
         );
     }
@@ -169,6 +190,8 @@ class Aggregator
         foreach ($this->externalFlow($trace) as $external) {
             $parts[] = 'HTTP:' . $external['method'] . ':' . $external['host'] . $external['path'];
         }
+        $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
+        $parts[] = 'STATUS:' . (isset($http['status']) ? (string) $http['status'] : 'UNKNOWN');
 
         if (count($parts) === 0) {
             return 'no-observed-io';
@@ -187,6 +210,7 @@ class Aggregator
                 'tables' => isset($item['tables']) && is_array($item['tables']) ? $item['tables'] : array(),
                 'statement_hash' => isset($item['statement_hash']) ? (string) $item['statement_hash'] : '',
                 'statement_normalized' => isset($item['statement_normalized']) ? (string) $item['statement_normalized'] : '',
+                'statement_tokenized' => isset($item['statement_tokenized']) ? $item['statement_tokenized'] : null,
                 'statement_text' => isset($item['statement_text']) ? $item['statement_text'] : null,
                 'caller' => isset($item['caller']) && is_array($item['caller']) ? $item['caller'] : array(),
             );
@@ -220,7 +244,8 @@ class Aggregator
                 'operation' => $step['operation'],
                 'tables' => $step['tables'],
                 'statement_normalized' => $step['statement_normalized'],
-                'statement_text' => $step['statement_text'],
+                'statement_tokenized' => $step['statement_tokenized'],
+                'statement_text' => $this->valueMode === 'raw' ? $step['statement_text'] : null,
             );
         }
 
@@ -230,9 +255,11 @@ class Aggregator
             'path_pattern' => isset($http['path_pattern']) ? $http['path_pattern'] : (isset($http['path']) ? $http['path'] : null),
             'path' => isset($http['path']) ? $http['path'] : null,
             'query_shape' => isset($http['query_shape']) ? $http['query_shape'] : array(),
-            'query_raw' => isset($http['query_raw']) ? $http['query_raw'] : null,
+            'query_tokens' => isset($http['query_tokens']) ? $http['query_tokens'] : null,
+            'query_raw' => $this->valueMode === 'raw' && isset($http['query_raw']) ? $http['query_raw'] : null,
             'request_shape' => isset($http['request_shape']) ? $http['request_shape'] : array(),
-            'request_raw' => isset($http['request_raw']) ? $http['request_raw'] : null,
+            'request_tokens' => isset($http['request_tokens']) ? $http['request_tokens'] : null,
+            'request_raw' => $this->valueMode === 'raw' && isset($http['request_raw']) ? $http['request_raw'] : null,
             'response_shape' => isset($http['response_shape']) ? $http['response_shape'] : array(),
             'sql' => $sql,
             'external_http' => $this->externalFlow($trace),

@@ -12,17 +12,21 @@ class Collector
     private $sink;
     private $failureHandler;
     private $trace;
+    private $environment;
+    private $redaction;
 
-    public function __construct(?Sampler $sampler = null, ?SinkInterface $sink = null, ?FailureHandler $failureHandler = null)
+    public function __construct(?Sampler $sampler = null, ?SinkInterface $sink = null, ?FailureHandler $failureHandler = null, $environment = 'production', array $redaction = array())
     {
-        $this->sampler = $sampler ?: new Sampler(1.0);
+        $this->sampler = $sampler ?: new Sampler(0.1);
         $this->sink = $sink ?: new NullSink();
         $this->failureHandler = $failureHandler ?: new FailureHandler();
+        $this->environment = $environment;
+        $this->redaction = $redaction;
     }
 
     public function start($service, $framework, array $http = array())
     {
-        $this->trace = new Trace($service, $framework, $this->sampler->shouldSample());
+        $this->trace = new Trace($service, $framework, $this->sampler->shouldSample(), null, $this->sampler->rate(), $this->environment, $this->redaction);
         $this->trace->setHttp($http);
 
         return $this->trace;
@@ -65,6 +69,13 @@ class Collector
     {
         if ($this->trace && $this->trace->isSampled()) {
             $this->trace->addExternalHttp($event);
+        }
+    }
+
+    public function addView(array $view)
+    {
+        if ($this->trace && $this->trace->isSampled()) {
+            $this->trace->addView($view);
         }
     }
 

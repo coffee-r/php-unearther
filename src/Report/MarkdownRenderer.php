@@ -11,6 +11,9 @@ class MarkdownRenderer
         $lines[] = '';
         $lines[] = '- Generated at: `' . $report['generated_at'] . '`';
         $lines[] = '- Endpoints: `' . $report['endpoint_count'] . '`';
+        $lines[] = '- Traces: `' . (isset($report['trace_count']) ? $report['trace_count'] : '-') . '`';
+        $lines[] = '- Observed window: `' . (isset($report['observed_started_at_min']) ? $report['observed_started_at_min'] : '-') . '` to `' . (isset($report['observed_started_at_max']) ? $report['observed_started_at_max'] : '-') . '`';
+        $lines[] = '- Value mode: `' . (isset($report['value_mode']) ? $report['value_mode'] : 'normalized') . '`';
         $lines[] = '';
 
         foreach ($report['endpoints'] as $endpoint) {
@@ -108,8 +111,12 @@ class MarkdownRenderer
         $lines[] = '- SQL count: `' . count($sql) . '`';
         foreach ($sql as $stmt) {
             $normalized = isset($stmt['statement_normalized']) ? (string) $stmt['statement_normalized'] : '';
+            $tokenized = isset($stmt['statement_tokenized']) ? $stmt['statement_tokenized'] : null;
             $text = isset($stmt['statement_text']) ? $stmt['statement_text'] : null;
             $line = '  - `' . $this->backtickValue($normalized) . '`';
+            if ($tokenized !== null && $tokenized !== '') {
+                $line .= ' (tokenized: `' . $this->backtickValue($tokenized) . '`)';
+            }
             if ($text !== null && $text !== '') {
                 $line .= ' (concrete: `' . $this->backtickValue($text) . '`)';
             }

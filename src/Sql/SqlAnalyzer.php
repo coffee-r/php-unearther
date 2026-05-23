@@ -2,27 +2,39 @@
 
 namespace CoffeeR\Unearther\Sql;
 
+use CoffeeR\Unearther\Redaction\Redactor;
+
 class SqlAnalyzer
 {
     private $captureText;
+    private $captureBindRaw;
+    private $redactor;
 
-    public function __construct($captureText = false)
+    public function __construct($captureText = false, ?Redactor $redactor = null, $captureBindRaw = false)
     {
         $this->captureText = (bool) $captureText;
+        $this->redactor = $redactor;
+        $this->captureBindRaw = (bool) $captureBindRaw;
     }
 
     public function analyze($sql, array $binds = array(), array $caller = array())
     {
         $rawSql = (string) $sql;
         $statementNormalized = $this->normalizeWithPlaceholder($rawSql);
+        $tables = $this->tables($statementNormalized);
+        $operation = $this->operation($statementNormalized);
 
         return array(
-            'operation' => $this->operation($statementNormalized),
-            'tables' => $this->tables($statementNormalized),
+            'operation' => $operation,
+            'tables' => $tables,
             'statement_normalized' => $statementNormalized,
+            'statement_tokenized' => $this->redactor ? $this->redactor->tokenizedSql($rawSql) : null,
             'statement_text' => $this->captureText ? $rawSql : null,
             'statement_hash' => $this->statementHash($statementNormalized),
             'bind_shape' => $this->bindShape($binds),
+            'bind_tokens' => $this->redactor ? $this->redactor->tokens($binds) : null,
+            'bind_raw' => $this->captureBindRaw ? $binds : null,
+            'analysis' => $this->analysis($operation, $tables, $caller),
             'caller' => $caller,
         );
     }
@@ -126,5 +138,26 @@ class SqlAnalyzer
         }
 
         return $shape;
+    }
+
+    private function analysis($operation, array $tables, array $caller)
+    {
+        $warnings = array();
+        if (isset($caller['source']) && $caller['source'] === 'codeigniter3_query_history') {
+            $warnings[] = 'query_history_capture_has_no_precise_caller_or_bind_values';
+        }
+        if (count($tables) === 0) {
+            $warnings[] = 'tables_not_detected';
+        }
+        if ($operation === 'UNKNOWN') {
+            $warnings[] = 'operation_not_detected';
+        }
+
+        return array(
+            'analyzer' => 'regex',
+            'operation_confidence' => $operation === 'UNKNOWN' ? 'unknown' : 'high',
+            'tables_confidence' => count($tables) === 0 ? 'unknown' : 'best_effort',
+            'warnings' => $warnings,
+        );
     }
 }

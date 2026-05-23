@@ -10,6 +10,14 @@ use PHPUnit\Framework\TestCase;
 
 class CollectorTest extends TestCase
 {
+    public function testDefaultSamplerUsesTenPercentRate()
+    {
+        $collector = new Collector();
+        $trace = $collector->start('legacy-api', 'codeigniter3');
+
+        $this->assertSame(0.1, $trace->toArray()['sample_rate']);
+    }
+
     public function testWritesSampledTraceOnFinish()
     {
         $sink = new MemorySink();

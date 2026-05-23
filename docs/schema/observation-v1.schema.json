@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/coffee-r/php-unearther/docs/schema/observation-v1.schema.json",
+  "title": "php-unearther observation v1",
+  "type": "object",
+  "required": ["schema_version", "trace_id", "service", "framework", "environment", "sampled", "sample_rate", "started_at", "redaction", "http", "sql", "external_http", "errors"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "trace_id": { "type": "string" },
+    "service": { "type": "string" },
+    "framework": { "type": "string" },
+    "environment": { "type": "string" },
+    "sampled": { "type": "boolean" },
+    "sample_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "started_at": { "type": "string" },
+    "redaction": {
+      "type": "object",
+      "required": ["tokenized", "token_format"],
+      "properties": {
+        "tokenized": { "type": "boolean" },
+        "token_format": { "type": ["string", "null"] }
+      }
+    },
+    "http": {
+      "type": "object",
+      "required": ["method", "path", "path_pattern"],
+      "properties": {
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "path_pattern": { "type": "string" },
+        "path_tokenized": { "type": ["string", "null"] },
+        "path_raw": { "type": ["string", "null"] },
+        "route": { "type": "string" },
+        "status": { "type": "integer" },
+        "response_kind": { "enum": ["json", "html", "other"] },
+        "content_type": { "type": ["string", "null"] },
+        "response_bytes": { "type": ["integer", "null"] },
+        "query_shape": {},
+        "query_tokens": {},
+        "query_raw": {},
+        "request_shape": {},
+        "request_tokens": {},
+        "request_raw": {},
+        "response_shape": {},
+        "views": { "type": "array" }
+      },
+      "additionalProperties": true
+    },
+    "calls": { "type": "array" },
+    "sql": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seq", "operation", "tables", "statement_normalized", "statement_tokenized", "statement_text", "statement_hash", "bind_shape", "bind_tokens", "bind_raw", "analysis", "caller"],
+        "properties": {
+          "seq": { "type": "integer" },
+          "operation": { "type": "string" },
+          "tables": { "type": "array", "items": { "type": "string" } },
+          "statement_normalized": { "type": "string" },
+          "statement_tokenized": { "type": ["string", "null"] },
+          "statement_text": { "type": ["string", "null"] },
+          "statement_hash": { "type": "string" },
+          "bind_shape": {},
+          "bind_tokens": {},
+          "bind_raw": {},
+          "analysis": {
+            "type": "object",
+            "required": ["analyzer", "operation_confidence", "tables_confidence", "warnings"]
+          },
+          "caller": { "type": "object" }
+        }
+      }
+    },
+    "external_http": { "type": "array" },
+    "errors": { "type": "array" }
+  },
+  "additionalProperties": true
+}

@@ -9,6 +9,8 @@ class ConfigTest extends TestCase
 {
     public function testDefaultsCanBeOverridden()
     {
+        $this->assertSame(0.1, Config::fromArray(array())->sampleRate());
+
         $config = Config::fromArray(array(
             'service' => 'shop-api',
             'framework' => 'codeigniter3',
@@ -27,8 +29,10 @@ class ConfigTest extends TestCase
         $this->assertSame('/tmp/unearther-{date}.jsonl', $config->sinkPath());
         $this->assertSame('Y-m-d', $config->sinkDateFormat());
         $this->assertTrue($config->codeIgniter3CaptureQueryHistory());
-        $this->assertSame('query_history', $config->codeIgniter3SqlCapture());
+        $this->assertSame('sampled_query_history', $config->codeIgniter3SqlCapture());
         $this->assertFalse($config->captureSqlText());
+        $this->assertFalse($config->captureBindRaw());
+        $this->assertSame('production', $config->environment());
         $this->assertTrue($config->captureJsonRequestShape());
         $this->assertFalse($config->captureJsonResponseShape());
         $this->assertSame(65536, $config->maxBodyBytes());
@@ -47,7 +51,7 @@ class ConfigTest extends TestCase
         $this->assertSame('none', $config->codeIgniter3SqlCapture());
     }
 
-    public function testCanUseObservedDbSqlCaptureMode()
+    public function testCanUseWrappedDbSqlCaptureMode()
     {
         $config = Config::fromArray(array(
             'codeigniter3' => array(
@@ -60,7 +64,7 @@ class ConfigTest extends TestCase
             ),
         ));
 
-        $this->assertSame('observed_db', $config->codeIgniter3SqlCapture());
+        $this->assertSame('wrapped_db', $config->codeIgniter3SqlCapture());
         $this->assertFalse($config->captureJsonRequestShape());
         $this->assertTrue($config->captureJsonResponseShape());
         $this->assertSame(128, $config->maxBodyBytes());
@@ -99,6 +103,33 @@ class ConfigTest extends TestCase
 
         $this->assertTrue($config->captureSqlText());
         $this->assertFalse(Config::fromArray(array('sql' => array('capture_text' => false)))->captureSqlText());
+    }
+
+    public function testNormalizesRedactionAndShapeConfig()
+    {
+        $config = Config::fromArray(array(
+            'environment' => 'staging',
+            'redaction' => array(
+                'secret' => 'abc',
+                'token_length' => 4,
+                'deny_keys' => array('secret'),
+            ),
+            'shape' => array(
+                'max_depth' => 0,
+                'max_items' => 0,
+            ),
+            'sql' => array(
+                'capture_bind_raw' => true,
+            ),
+        ));
+
+        $this->assertSame('staging', $config->environment());
+        $this->assertSame(8, $config->redactionTokenLength());
+        $this->assertSame(array('secret'), $config->redactionDenyKeys());
+        $this->assertSame(array('tokenized' => true, 'token_format' => 'hmac-sha256:8'), $config->redactionMeta());
+        $this->assertSame(1, $config->shapeMaxDepth());
+        $this->assertSame(1, $config->shapeMaxItems());
+        $this->assertTrue($config->captureBindRaw());
     }
 
     public function testClampsSampleRate()

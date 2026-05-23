@@ -130,4 +130,27 @@ class ReportAggregatorTest extends TestCase
         $this->assertSame('sha256:first', $endpoint['patterns'][0]['sql_flow'][0]['statement_hash']);
         $this->assertSame('select * from users where id = {parameter}', $endpoint['patterns'][0]['sql_flow'][0]['statement_normalized']);
     }
+
+    public function testStatusCodeParticipatesInPattern()
+    {
+        $aggregator = new Aggregator();
+        $sql = array(array(
+            'operation' => 'SELECT',
+            'tables' => array('USERS'),
+            'statement_hash' => 'sha256:first',
+            'statement_normalized' => 'select * from users',
+        ));
+
+        $report = $aggregator->aggregate(array(
+            array('trace_id' => 'ok', 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200), 'sql' => $sql),
+            array('trace_id' => 'error', 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 500), 'sql' => $sql),
+        ));
+
+        $endpoint = $report['endpoints'][0];
+        $this->assertCount(2, $endpoint['patterns']);
+        $this->assertSame(array(200), $endpoint['patterns'][0]['statuses']);
+        $this->assertSame(array(500), $endpoint['patterns'][1]['statuses']);
+        $this->assertStringContainsString('STATUS:200', $endpoint['patterns'][0]['signature']);
+        $this->assertStringContainsString('STATUS:500', $endpoint['patterns'][1]['signature']);
+    }
 }
