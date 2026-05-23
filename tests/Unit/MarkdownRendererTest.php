@@ -25,6 +25,12 @@ class MarkdownRendererTest extends TestCase
         $this->assertStringContainsString('pattern-1', $markdown);
         $this->assertStringContainsString('SELECT M_SHOHIN -> INSERT T_CART', $markdown);
         $this->assertStringContainsString('trace-ok-1', $markdown);
+        $this->assertStringContainsString('#### Representative Case', $markdown);
+        $this->assertStringContainsString('path (canonical):', $markdown);
+        $this->assertStringContainsString('path (concrete):', $markdown);
+        $this->assertStringNotContainsString('Avg duration', $markdown);
+        $this->assertStringNotContainsString('P95 duration', $markdown);
+        $this->assertStringNotContainsString('Max duration', $markdown);
     }
 
     public function testEscapesMarkdownTableCells()
@@ -37,9 +43,6 @@ class MarkdownRendererTest extends TestCase
                 'method' => 'GET',
                 'path' => '/pipe',
                 'observed_count' => 1,
-                'avg_duration_ms' => 1,
-                'p95_duration_ms' => 1,
-                'max_duration_ms' => 1,
                 'status_codes' => array('200|ok' => 1),
                 'request_shape' => array('field|name' => 'string`type'),
                 'response_shape' => array(),
@@ -51,6 +54,19 @@ class MarkdownRendererTest extends TestCase
                     'tables' => array('A|B'),
                     'external_http' => array(),
                     'representative_trace_id' => 'trace',
+                    'representative' => array(
+                        'trace_id' => 'trace',
+                        'status' => 200,
+                        'path_pattern' => '/pipe',
+                        'path' => '/pipe',
+                        'query_shape' => array(),
+                        'query_raw' => null,
+                        'request_shape' => array(),
+                        'request_raw' => null,
+                        'response_shape' => array(),
+                        'sql' => array(),
+                        'external_http' => array(),
+                    ),
                 )),
             )),
         ));

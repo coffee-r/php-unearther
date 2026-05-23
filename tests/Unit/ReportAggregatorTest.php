@@ -22,6 +22,26 @@ class ReportAggregatorTest extends TestCase
         $this->assertCount(2, $endpoint['patterns']);
         $this->assertSame(2, $endpoint['patterns'][0]['count']);
         $this->assertSame(1, $endpoint['patterns'][1]['count']);
+        $this->assertArrayNotHasKey('avg_duration_ms', $endpoint);
+        $this->assertArrayNotHasKey('p95_duration_ms', $endpoint);
+        $this->assertArrayNotHasKey('max_duration_ms', $endpoint);
+    }
+
+    public function testRepresentativeCaseIsAttachedToPattern()
+    {
+        $reader = new JsonlReader();
+        $aggregator = new Aggregator();
+
+        $report = $aggregator->aggregate($reader->read(array(__DIR__ . '/../Fixtures/jsonl/cart_add.jsonl')));
+        $rep = $report['endpoints'][0]['patterns'][0]['representative'];
+
+        $this->assertSame('trace-ok-1', $rep['trace_id']);
+        $this->assertSame(200, $rep['status']);
+        $this->assertSame('/api/cart/add', $rep['path_pattern']);
+        $this->assertSame('/api/cart/add', $rep['path']);
+        $this->assertCount(2, $rep['sql']);
+        $this->assertSame('SELECT * FROM M_SHOHIN WHERE item_code = {parameter}', $rep['sql'][0]['statement_normalized']);
+        $this->assertSame(array(), $rep['external_http']);
     }
 
     public function testExternalHttpParticipatesInPattern()
@@ -40,8 +60,8 @@ class ReportAggregatorTest extends TestCase
     {
         $aggregator = new Aggregator();
         $report = $aggregator->aggregate(array(
-            array('trace_id' => 'a', 'duration_ms' => 1, 'http' => array('method' => 'GET', 'path' => '/api/users/1', 'endpoint_path' => '/api/users/{id}', 'status' => 200), 'sql' => array(), 'external_http' => array(), 'errors' => array()),
-            array('trace_id' => 'b', 'duration_ms' => 1, 'http' => array('method' => 'GET', 'path' => '/api/users/2', 'endpoint_path' => '/api/users/{id}', 'status' => 200), 'sql' => array(), 'external_http' => array(), 'errors' => array()),
+            array('trace_id' => 'a', 'http' => array('method' => 'GET', 'path' => '/api/users/1', 'path_pattern' => '/api/users/{id}', 'status' => 200), 'sql' => array(), 'external_http' => array(), 'errors' => array()),
+            array('trace_id' => 'b', 'http' => array('method' => 'GET', 'path' => '/api/users/2', 'path_pattern' => '/api/users/{id}', 'status' => 200), 'sql' => array(), 'external_http' => array(), 'errors' => array()),
         ));
 
         $this->assertSame(1, $report['endpoint_count']);
@@ -53,9 +73,9 @@ class ReportAggregatorTest extends TestCase
     {
         $aggregator = new Aggregator();
         $report = $aggregator->aggregate(array(
-            array('trace_id' => 'a', 'duration_ms' => 1, 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200), 'errors' => array(array('type' => 'warning', 'message' => 'slow query'))),
-            array('trace_id' => 'b', 'duration_ms' => 1, 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 500), 'errors' => array(array('type' => 'warning', 'message' => 'slow query'))),
-            array('trace_id' => 'c', 'duration_ms' => 1, 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200), 'errors' => array()),
+            array('trace_id' => 'a', 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200), 'errors' => array(array('type' => 'warning', 'message' => 'slow query'))),
+            array('trace_id' => 'b', 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 500), 'errors' => array(array('type' => 'warning', 'message' => 'slow query'))),
+            array('trace_id' => 'c', 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200), 'errors' => array()),
         ));
         $endpoint = $report['endpoints'][0];
 
@@ -71,38 +91,35 @@ class ReportAggregatorTest extends TestCase
         $report = $aggregator->aggregate(array(
             array(
                 'trace_id' => 'a',
-                'duration_ms' => 1,
                 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200),
                 'sql' => array(array(
                     'operation' => 'SELECT',
                     'tables' => array('USERS'),
                     'statement_hash' => 'sha256:first',
-                    'fingerprint_sql' => 'select * from users where id = ?',
-                    'raw_sql' => 'select * from users where id = 1',
+                    'statement_normalized' => 'select * from users where id = {parameter}',
+                    'statement_text' => 'select * from users where id = 1',
                 )),
             ),
             array(
                 'trace_id' => 'b',
-                'duration_ms' => 1,
                 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200),
                 'sql' => array(array(
                     'operation' => 'SELECT',
                     'tables' => array('USERS'),
                     'statement_hash' => 'sha256:first',
-                    'fingerprint_sql' => 'select * from users where id = ?',
-                    'raw_sql' => 'select * from users where id = 2',
+                    'statement_normalized' => 'select * from users where id = {parameter}',
+                    'statement_text' => 'select * from users where id = 2',
                 )),
             ),
             array(
                 'trace_id' => 'c',
-                'duration_ms' => 1,
                 'http' => array('method' => 'GET', 'path' => '/api/users', 'status' => 200),
                 'sql' => array(array(
                     'operation' => 'SELECT',
                     'tables' => array('USERS'),
                     'statement_hash' => 'sha256:second',
-                    'fingerprint_sql' => 'select * from users where email = ?',
-                    'raw_sql' => "select * from users where email = 'coffee@example.com'",
+                    'statement_normalized' => 'select * from users where email = {parameter}',
+                    'statement_text' => "select * from users where email = 'coffee@example.com'",
                 )),
             ),
         ));
@@ -111,7 +128,6 @@ class ReportAggregatorTest extends TestCase
         $this->assertCount(2, $endpoint['patterns']);
         $this->assertSame(2, $endpoint['patterns'][0]['count']);
         $this->assertSame('sha256:first', $endpoint['patterns'][0]['sql_flow'][0]['statement_hash']);
-        $this->assertSame('select * from users where id = ?', $endpoint['patterns'][0]['sql_flow'][0]['fingerprint_sql']);
-        $this->assertStringNotContainsString('coffee@example.com', json_encode($report));
+        $this->assertSame('select * from users where id = {parameter}', $endpoint['patterns'][0]['sql_flow'][0]['statement_normalized']);
     }
 }

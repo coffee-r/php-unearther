@@ -46,21 +46,7 @@ class TraceTest extends TestCase
         $this->assertSame(1, $serialized['external_http'][0]['seq']);
         $this->assertSame('payment.example.com', $serialized['external_http'][0]['host']);
         $this->assertSame(array('type' => 'warning', 'message' => 'slow query'), $serialized['errors'][0]);
-        $this->assertIsInt($serialized['duration_ms']);
         $this->assertArrayHasKey('started_at', $serialized);
-    }
-
-    public function testMarkFinishedFreezesDuration()
-    {
-        $trace = new Trace('legacy-api', 'codeigniter3', true, 'trace-duration');
-
-        usleep(1000);
-        $trace->markFinished();
-        $firstDuration = $trace->toArray()['duration_ms'];
-
-        usleep(5000);
-        $secondDuration = $trace->toArray()['duration_ms'];
-
-        $this->assertSame($firstDuration, $secondDuration);
+        $this->assertArrayNotHasKey('duration_ms', $serialized);
     }
 }

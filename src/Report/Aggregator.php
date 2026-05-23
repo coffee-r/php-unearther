@@ -11,7 +11,7 @@ class Aggregator
         foreach ($traces as $trace) {
             $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
             $method = isset($http['method']) ? strtoupper($http['method']) : 'UNKNOWN';
-            $path = isset($http['endpoint_path']) ? $http['endpoint_path'] : (isset($http['path']) ? $http['path'] : 'unknown');
+            $path = isset($http['path_pattern']) ? $http['path_pattern'] : (isset($http['path']) ? $http['path'] : 'unknown');
             $endpointKey = $method . ' ' . $path;
 
             if (!isset($endpoints[$endpointKey])) {
@@ -20,7 +20,6 @@ class Aggregator
 
             $endpoint =& $endpoints[$endpointKey];
             $endpoint['observed_count']++;
-            $endpoint['durations'][] = isset($trace['duration_ms']) ? (int) $trace['duration_ms'] : 0;
 
             if (isset($http['status'])) {
                 $status = (string) $http['status'];
@@ -70,6 +69,7 @@ class Aggregator
                     'tables' => array(),
                     'external_http' => array(),
                     'representative_trace_id' => isset($trace['trace_id']) ? $trace['trace_id'] : null,
+                    'representative' => $this->buildRepresentative($trace),
                 );
             }
 
@@ -86,7 +86,7 @@ class Aggregator
                         'operation' => $step['operation'],
                         'tables' => $step['tables'],
                         'statement_hash' => $step['statement_hash'],
-                        'fingerprint_sql' => $step['fingerprint_sql'],
+                        'statement_normalized' => $step['statement_normalized'],
                         'count' => 0,
                         'example_source' => $this->sourceLabel($step['caller']),
                     );
@@ -108,11 +108,7 @@ class Aggregator
         }
 
         foreach ($endpoints as &$endpoint) {
-            $endpoint['avg_duration_ms'] = $this->avg($endpoint['durations']);
-            $endpoint['p95_duration_ms'] = $this->percentile($endpoint['durations'], 95);
-            $endpoint['max_duration_ms'] = count($endpoint['durations']) ? max($endpoint['durations']) : 0;
             $endpoint['error_rate'] = $endpoint['observed_count'] > 0 ? round($endpoint['error_count'] / $endpoint['observed_count'], 4) : 0.0;
-            unset($endpoint['durations']);
 
             $endpoint['routes'] = array_keys($endpoint['routes']);
             $endpoint['controllers'] = array_keys($endpoint['controllers']);
@@ -150,10 +146,6 @@ class Aggregator
             'controllers' => array(),
             'endpoint_names' => array(),
             'status_codes' => array(),
-            'durations' => array(),
-            'avg_duration_ms' => 0,
-            'p95_duration_ms' => 0,
-            'max_duration_ms' => 0,
             'error_count' => 0,
             'error_rate' => 0.0,
             'errors' => array(),
@@ -194,7 +186,8 @@ class Aggregator
                 'operation' => isset($item['operation']) ? $item['operation'] : 'UNKNOWN',
                 'tables' => isset($item['tables']) && is_array($item['tables']) ? $item['tables'] : array(),
                 'statement_hash' => isset($item['statement_hash']) ? (string) $item['statement_hash'] : '',
-                'fingerprint_sql' => isset($item['fingerprint_sql']) ? (string) $item['fingerprint_sql'] : '',
+                'statement_normalized' => isset($item['statement_normalized']) ? (string) $item['statement_normalized'] : '',
+                'statement_text' => isset($item['statement_text']) ? $item['statement_text'] : null,
                 'caller' => isset($item['caller']) && is_array($item['caller']) ? $item['caller'] : array(),
             );
         }
@@ -211,10 +204,39 @@ class Aggregator
                 'method' => isset($item['method']) ? strtoupper($item['method']) : 'GET',
                 'host' => isset($item['host']) ? $item['host'] : '',
                 'path' => isset($item['path']) ? $item['path'] : '',
+                'status' => isset($item['status']) ? $item['status'] : null,
             );
         }
 
         return $flow;
+    }
+
+    private function buildRepresentative(array $trace)
+    {
+        $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
+        $sql = array();
+        foreach ($this->sqlFlow($trace) as $step) {
+            $sql[] = array(
+                'operation' => $step['operation'],
+                'tables' => $step['tables'],
+                'statement_normalized' => $step['statement_normalized'],
+                'statement_text' => $step['statement_text'],
+            );
+        }
+
+        return array(
+            'trace_id' => isset($trace['trace_id']) ? $trace['trace_id'] : null,
+            'status' => isset($http['status']) ? $http['status'] : null,
+            'path_pattern' => isset($http['path_pattern']) ? $http['path_pattern'] : (isset($http['path']) ? $http['path'] : null),
+            'path' => isset($http['path']) ? $http['path'] : null,
+            'query_shape' => isset($http['query_shape']) ? $http['query_shape'] : array(),
+            'query_raw' => isset($http['query_raw']) ? $http['query_raw'] : null,
+            'request_shape' => isset($http['request_shape']) ? $http['request_shape'] : array(),
+            'request_raw' => isset($http['request_raw']) ? $http['request_raw'] : null,
+            'response_shape' => isset($http['response_shape']) ? $http['response_shape'] : array(),
+            'sql' => $sql,
+            'external_http' => $this->externalFlow($trace),
+        );
     }
 
     private function sourceLabel(array $caller)
@@ -267,29 +289,5 @@ class Aggregator
         }
 
         return $left;
-    }
-
-    private function avg(array $values)
-    {
-        if (count($values) === 0) {
-            return 0;
-        }
-
-        return (int) round(array_sum($values) / count($values));
-    }
-
-    private function percentile(array $values, $percentile)
-    {
-        if (count($values) === 0) {
-            return 0;
-        }
-
-        sort($values);
-        $index = (int) ceil(($percentile / 100) * count($values)) - 1;
-        if ($index < 0) {
-            $index = 0;
-        }
-
-        return $values[$index];
     }
 }

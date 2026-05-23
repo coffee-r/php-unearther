@@ -10,25 +10,24 @@ class UneartherMiddleware
     {
         return function (callable $handler) use ($collector) {
             return function ($request, array $options) use ($handler, $collector) {
-                $startedAt = microtime(true);
                 $caller = self::caller();
 
                 try {
                     $promise = $handler($request, $options);
                 } catch (\Throwable $exception) {
-                    self::record($collector, $request, null, $startedAt, $exception, $caller);
+                    self::record($collector, $request, null, $exception, $caller);
                     throw $exception;
                 }
 
                 if (is_object($promise) && method_exists($promise, 'then')) {
                     return $promise->then(
-                        function ($response) use ($collector, $request, $startedAt, $caller) {
-                            self::record($collector, $request, $response, $startedAt, null, $caller);
+                        function ($response) use ($collector, $request, $caller) {
+                            self::record($collector, $request, $response, null, $caller);
                             return $response;
                         },
-                        function ($reason) use ($collector, $request, $startedAt, $caller) {
+                        function ($reason) use ($collector, $request, $caller) {
                             $exception = $reason instanceof \Throwable ? $reason : null;
-                            self::record($collector, $request, null, $startedAt, $exception, $caller);
+                            self::record($collector, $request, null, $exception, $caller);
                             if ($reason instanceof \Throwable) {
                                 throw $reason;
                             }
@@ -38,14 +37,14 @@ class UneartherMiddleware
                     );
                 }
 
-                self::record($collector, $request, $promise, $startedAt, null, $caller);
+                self::record($collector, $request, $promise, null, $caller);
 
                 return $promise;
             };
         };
     }
 
-    private static function record(Collector $collector, $request, $response, $startedAt, $exception, array $caller)
+    private static function record(Collector $collector, $request, $response, $exception, array $caller)
     {
         $uri = method_exists($request, 'getUri') ? $request->getUri() : null;
         $method = method_exists($request, 'getMethod') ? $request->getMethod() : 'GET';
@@ -59,7 +58,6 @@ class UneartherMiddleware
             'host' => $host,
             'path' => $path,
             'status' => $status,
-            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'caller' => $caller,
         );
 

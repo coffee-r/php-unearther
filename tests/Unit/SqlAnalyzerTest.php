@@ -16,6 +16,7 @@ class SqlAnalyzerTest extends TestCase
         $this->assertSame(array('USERS', 'ORDERS'), $event['tables']);
         $this->assertSame(array(0 => 'number'), $event['bind_shape']);
         $this->assertStringStartsWith('sha256:', $event['statement_hash']);
+        $this->assertArrayNotHasKey('duration_ms', $event);
     }
 
     public function testAnalyzesInsertUpdateDeleteAndMerge()
@@ -28,7 +29,7 @@ class SqlAnalyzerTest extends TestCase
         $this->assertSame(array('ORDERS'), $analyzer->tables('merge into orders using dual on (id = ?)'));
     }
 
-    public function testStatementHashUsesLiteralInsensitiveFingerprint()
+    public function testStatementHashIsLiteralInsensitive()
     {
         $analyzer = new SqlAnalyzer();
 
@@ -36,22 +37,20 @@ class SqlAnalyzerTest extends TestCase
         $second = $analyzer->analyze("select * from users where id = 99 and name = 'tea'");
 
         $this->assertSame($first['statement_hash'], $second['statement_hash']);
-        $this->assertSame('select * from users where id = ? and name = ?', $analyzer->fingerprint("select * from users where id = 42 and name = 'coffee'"));
+        $this->assertSame('select * from users where id = {parameter} and name = {parameter}', $first['statement_normalized']);
     }
 
-    public function testSqlTextCaptureIsOptIn()
+    public function testStatementTextIsOptIn()
     {
         $sql = " select * from users where id = 42 and name = 'coffee' ";
 
         $defaultEvent = (new SqlAnalyzer())->analyze($sql);
-        $this->assertArrayNotHasKey('raw_sql', $defaultEvent);
-        $this->assertArrayNotHasKey('normalized_sql', $defaultEvent);
-        $this->assertArrayNotHasKey('fingerprint_sql', $defaultEvent);
+        $this->assertNull($defaultEvent['statement_text']);
+        $this->assertSame('select * from users where id = {parameter} and name = {parameter}', $defaultEvent['statement_normalized']);
 
         $capturedEvent = (new SqlAnalyzer(true))->analyze($sql);
-        $this->assertSame($sql, $capturedEvent['raw_sql']);
-        $this->assertSame("select * from users where id = 42 and name = 'coffee'", $capturedEvent['normalized_sql']);
-        $this->assertSame('select * from users where id = ? and name = ?', $capturedEvent['fingerprint_sql']);
+        $this->assertSame($sql, $capturedEvent['statement_text']);
+        $this->assertSame('select * from users where id = {parameter} and name = {parameter}', $capturedEvent['statement_normalized']);
     }
 
     public function testExtractsCommaSeparatedFromTables()

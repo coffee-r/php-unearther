@@ -40,7 +40,6 @@ class Collector
         }
 
         $this->trace->setHttp($http);
-        $this->trace->markFinished();
         $trace = $this->trace;
         $this->trace = null;
 

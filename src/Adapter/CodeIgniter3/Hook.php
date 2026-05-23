@@ -64,6 +64,7 @@ class Hook
         $http = array(
             'method' => $method,
             'path' => $path,
+            'path_pattern' => $path,
         );
         $endpoint = self::$endpointMatcher->match($method, $path, $this->config->endpointPatterns());
         if ($endpoint) {
@@ -75,7 +76,9 @@ class Hook
         if ($trace->isSampled()) {
             $trace->setHttp(array(
                 'query_shape' => self::$shapeExtractor->extract($_GET),
+                'query_raw' => null,
                 'request_shape' => $this->requestShape(),
+                'request_raw' => null,
             ));
         }
     }
@@ -113,10 +116,13 @@ class Hook
         );
 
         $trace = self::$collector->current();
-        if ($trace && $trace->isSampled() && $this->config->captureJsonResponseShape()) {
-            $responseShape = $this->responseShape();
-            if ($responseShape !== null) {
-                $http['response_shape'] = $responseShape;
+        if ($trace && $trace->isSampled()) {
+            $http['response_kind'] = $this->detectResponseKind();
+            if ($this->config->captureJsonResponseShape()) {
+                $responseShape = $this->responseShape();
+                if ($responseShape !== null) {
+                    $http['response_shape'] = $responseShape;
+                }
             }
         }
 
@@ -207,15 +213,10 @@ class Hook
         }
 
         $analyzer = new SqlAnalyzer($this->config->captureSqlText());
-        foreach ($ci->db->queries as $index => $sql) {
-            $duration = null;
-            if (isset($ci->db->query_times[$index])) {
-                $duration = (int) round($ci->db->query_times[$index] * 1000);
-            }
-
+        foreach ($ci->db->queries as $sql) {
             self::$collector->addSql($analyzer->analyze($sql, array(), array(
                 'source' => 'codeigniter3_query_history',
-            ), $duration));
+            )));
         }
     }
 
@@ -257,6 +258,45 @@ class Hook
         $body = $ci->output->get_output();
 
         return self::$jsonShapeExtractor->extract($body, $contentType, $this->config->maxBodyBytes());
+    }
+
+    private function detectResponseKind()
+    {
+        $contentType = $this->currentResponseContentType();
+        if ($contentType === '') {
+            return 'other';
+        }
+
+        $lower = strtolower($contentType);
+        if (strpos($lower, 'application/json') !== false || preg_match('#\+json(?:\b|$|;)#', $lower)) {
+            return 'json';
+        }
+        if (strpos($lower, 'text/html') !== false || strpos($lower, 'application/xhtml') !== false) {
+            return 'html';
+        }
+
+        return 'other';
+    }
+
+    private function currentResponseContentType()
+    {
+        if (function_exists('get_instance')) {
+            $ci = get_instance();
+            if (isset($ci->output) && method_exists($ci->output, 'get_content_type')) {
+                $type = $ci->output->get_content_type();
+                if ($type !== null && $type !== '') {
+                    return $type;
+                }
+            }
+        }
+
+        foreach (headers_list() as $header) {
+            if (stripos($header, 'Content-Type:') === 0) {
+                return trim(substr($header, strlen('Content-Type:')));
+            }
+        }
+
+        return '';
     }
 
     private function requestContentType()

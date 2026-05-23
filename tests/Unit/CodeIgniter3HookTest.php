@@ -96,7 +96,9 @@ namespace CoffeeR\Unearther\Tests\Unit {
             $trace = $this->readTrace($path);
             $this->assertSame('SELECT', $trace['sql'][0]['operation']);
             $this->assertSame(array('USERS'), $trace['sql'][0]['tables']);
-            $this->assertSame(12, $trace['sql'][0]['duration_ms']);
+            $this->assertArrayNotHasKey('duration_ms', $trace['sql'][0]);
+            $this->assertNull($trace['sql'][0]['statement_text']);
+            $this->assertSame('select * from users', $trace['sql'][0]['statement_normalized']);
         }
 
         public function testQueryHistoryCaptureCanRecordSqlText()
@@ -111,9 +113,9 @@ namespace CoffeeR\Unearther\Tests\Unit {
             (new Hook())->finish();
 
             $sql = $this->readTrace($path)['sql'][0];
-            $this->assertSame(" select * from users where id = 42 and name = 'coffee' ", $sql['raw_sql']);
-            $this->assertSame("select * from users where id = 42 and name = 'coffee'", $sql['normalized_sql']);
-            $this->assertSame('select * from users where id = ? and name = ?', $sql['fingerprint_sql']);
+            $this->assertSame(" select * from users where id = 42 and name = 'coffee' ", $sql['statement_text']);
+            $this->assertSame('select * from users where id = {parameter} and name = {parameter}', $sql['statement_normalized']);
+            $this->assertStringStartsWith('sha256:', $sql['statement_hash']);
         }
 
         public function testObservedDbModeDoesNotAlsoRecordQueryHistory()
@@ -207,7 +209,7 @@ namespace CoffeeR\Unearther\Tests\Unit {
 
             $trace = $this->readTrace($path);
             $this->assertSame('/api/users/123', $trace['http']['path']);
-            $this->assertSame('/api/users/{id}', $trace['http']['endpoint_path']);
+            $this->assertSame('/api/users/{id}', $trace['http']['path_pattern']);
             $this->assertSame('users.show', $trace['http']['endpoint_name']);
         }
 
@@ -235,7 +237,7 @@ namespace CoffeeR\Unearther\Tests\Unit {
 
             $trace = $this->readTrace($path);
             $this->assertSame('/api/legacy/123', $trace['http']['path']);
-            $this->assertArrayNotHasKey('endpoint_path', $trace['http']);
+            $this->assertSame('/api/legacy/123', $trace['http']['path_pattern']);
             $this->assertArrayNotHasKey('endpoint_name', $trace['http']);
         }
 

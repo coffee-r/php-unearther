@@ -1,50 +1,50 @@
 # php-unearther
 
-php-unearther is an experimental PHP library for observing runtime behavior in legacy API applications and generating migration-oriented behavior reports.
+php-uneartherは、レガシーAPIアプリケーションのランタイム動作を観測し、移行作業向けの振る舞いレポートを生成するための実験的なPHPライブラリです。
 
-It is not an APM replacement. The goal is to help answer questions such as:
+APMの代替ではありません。次のような疑問に答えることを目的としています：
 
-- Which SQL statements does this endpoint execute?
-- Which tables does it read or write?
-- Which execution patterns are actually observed in traffic?
-- Which external HTTP calls are made?
-- How close is a new implementation to the observed behavior of the legacy API?
+- このエンドポイントはどのSQLを実行しているか？
+- どのテーブルを読み書きしているか？
+- 実際のトラフィックで観測される実行パターンは何か？
+- どの外部HTTP呼び出しが行われているか？
+- 新しい実装はレガシーAPIの観測された振る舞いにどれだけ近いか？
 
-The first implementation target is CodeIgniter3 on PHP 7.3. The core schema is intended to be reused later by a Laravel 11 adapter.
+最初の実装ターゲットはPHP 7.3上のCodeIgniter3です。コアスキーマは後でLaravel 11アダプターでも再利用できるよう設計されています。
 
-The core package supports PHP 7.3 and newer runtimes. It avoids PHP 8-only syntax so it can be installed into older CodeIgniter3 applications while still allowing PHP 8 projects to consume the same report tooling.
+コアパッケージはPHP 7.3以降をサポートしており、PHP 8専用の構文を避けることで、古いCodeIgniter3アプリケーションにインストールしながら、PHP 8プロジェクトでも同じレポートツールを利用できます。
 
-## Motivation
+## 開発の動機
 
-Legacy API migrations often start with incomplete or outdated specifications. Reading source code helps, but it does not always reveal which branches are actually used in production, which SQL patterns appear for each endpoint, or which external services are involved.
+レガシーAPIの移行は、不完全または古い仕様から始まることが多くあります。ソースコードを読んでも、本番環境で実際に使われている分岐、各エンドポイントで現れるSQLパターン、関連する外部サービスなどが常に明らかになるとは限りません。
 
-php-unearther is meant to capture observed facts from sampled requests and turn them into a report that is useful during migration work. The report is intentionally behavior-oriented: it shows endpoint shapes, SQL/table flow, external HTTP calls, and recurring execution patterns.
+php-uneartherは、サンプリングされたリクエストから観測された事実をキャプチャし、移行作業で役立つレポートに変換することを目的としています。レポートは意図的に振る舞い中心の設計になっており、エンドポイントの形状、SQL/テーブルのフロー、外部HTTP呼び出し、繰り返される実行パターンを示します。
 
-## Status
+## 現状
 
-This package is an early prototype.
+このパッケージは初期プロトタイプです。
 
-Current focus:
+現在の実装範囲：
 
-- CodeIgniter3-oriented instrumentation
-- JSONL observation logs
-- SQL/table observation
-- Guzzle-based external HTTP observation
-- Markdown and JSON behavior reports
+- CodeIgniter3向けインストゥルメンテーション
+- JSONLによる観測ログ
+- SQL/テーブルの観測
+- Guzzleベースの外部HTTP観測
+- MarkdownおよびJSON形式の振る舞いレポート
 
-Not included in the initial scope:
+初期スコープに含まれないもの：
 
-- Session diff tracking
-- Raw request/response capture by default
-- Masking policy engine
-- curl interception
-- PHP extension hooks
-- DB before/after snapshots
-- Full OpenAPI generation
+- セッションdiffトラッキング
+- デフォルトでの生リクエスト/レスポンスキャプチャ
+- マスキングポリシーエンジン
+- curlインターセプト
+- PHPエクステンションフック
+- DBのbefore/afterスナップショット
+- 完全なOpenAPI生成
 
-## Installation
+## インストール
 
-Until the package is published to Packagist, install it from GitHub as a Composer VCS repository.
+Packagistへの公開前は、ComposerのVCSリポジトリとしてGitHubからインストールしてください。
 
 ```json
 {
@@ -60,48 +60,50 @@ Until the package is published to Packagist, install it from GitHub as a Compose
 }
 ```
 
-Then run:
+その後、以下を実行：
 
 ```bash
 composer update coffee-r/php-unearther
 ```
 
-## Observation Model
+## 観測モデル
 
-php-unearther writes one JSON object per sampled request.
+php-uneartherは、サンプリングされたリクエストごとに1つのJSONオブジェクトを書き出します。
 
-Each observation includes a `schema_version` field. The current schema version is `1`.
+各観測レコードには`schema_version`フィールドが含まれます。現在のスキーマバージョンは`1`です。
 
-The observation record can include:
+観測レコードに含まれる情報：
 
-- HTTP method, path, status, duration, request shape, response shape
-- Controller or route metadata when an adapter can provide it
-- SQL operation, normalized statement hash, bind shape, tables, duration, caller
-- External HTTP calls recorded through Guzzle middleware
-- Errors recorded by adapters or wrappers
+- HTTPメソッド、生の`path`、正規化された`path_pattern`、`route`、ステータス、`response_kind`（`json` / `html` / `other`）、`query_shape`、`query_raw`（デフォルトnull）、`request_shape`、`request_raw`（デフォルトnull）、`response_shape`
+- アダプターが提供できる場合のコントローラーまたはルートメタデータ
+- SQLの操作種別、`tables`、`statement_normalized`（リテラルを`{parameter}`に置換）、`statement_text`（生SQL、オプトイン；それ以外は`null`）、`statement_hash`（`statement_normalized`のsha256）、`bind_shape`、`caller`
+- Guzzleミドルウェア経由で記録された外部HTTP呼び出し（ホスト、メソッド、パス、ステータス、caller）
+- アダプターまたはラッパーが記録したエラー
 
-Values are represented as shapes where possible. For example, request fields are recorded as `string`, `number`, `boolean`, `array`, or nested structures rather than raw values.
+可能な場合、値は「形状（shape）」として表現されます。例えばリクエストフィールドは生の値ではなく、`string`、`number`、`boolean`、`array`、またはネストされた構造として記録されます。
 
-The observation schema includes a `calls` array for future controller/model/library call trace events. The current CodeIgniter3 adapter does not automatically populate it; SQL caller metadata and Guzzle external HTTP events are the supported call-site signals in this prototype.
+実行時間/レイテンシは意図的に記録していません。php-uneartherはエンドポイントが観測可能な動作を明らかにするためのもので、速度の測定用ではありません。
 
-## Production Data Safety
+観測スキーマには将来のコントローラー/モデル/ライブラリの呼び出しトレースイベント用として`calls`配列が含まれています。現在のCodeIgniter3アダプターはこれを自動的に埋めません；このプロトタイプでサポートされているコールサイトのシグナルはSQL callerメタデータとGuzzle外部HTTPイベントです。
 
-Be careful when enabling php-unearther in production or production-like environments. Observation logs may still reveal sensitive information even when raw request and response values are not stored.
+## 本番データの安全性
 
-Before enabling it, review:
+本番環境や本番相当の環境でphp-uneartherを有効にする際は注意が必要です。生のリクエスト・レスポンス値を保存しない場合でも、観測ログには機密情報が含まれる可能性があります。
 
-- Whether endpoint paths, query keys, request keys, response keys, SQL text, bind shapes, table names, caller paths, or external hostnames expose personal information, credentials, tenant identifiers, or internal system details
-- Whether SQL statements contain literal values because an application builds SQL strings without bind parameters
-- Whether log files are written to a restricted location with appropriate filesystem permissions
-- Whether log retention, backup, transfer, and deletion policies match the sensitivity of the application
-- Whether sample rates are low enough for production traffic and can be disabled quickly
-- Whether reports generated from the logs are treated with the same care as the raw JSONL logs
+有効化前に以下を確認してください：
 
-The initial prototype does not include a masking policy engine. If your application may place secrets, tokens, emails, names, addresses, phone numbers, payment identifiers, or customer identifiers in observed fields, add application-side filtering or keep php-unearther disabled until the capture surface is understood.
+- エンドポイントパス、クエリキー、リクエストキー、レスポンスキー、SQLテキスト、bind shape、テーブル名、callerパス、外部ホスト名などに個人情報・認証情報・テナント識別子・内部システム詳細が含まれていないか
+- アプリケーションがバインドパラメーターを使わずSQL文字列を構築している場合、SQLステートメントにリテラル値が含まれていないか
+- ログファイルが適切なファイルシステム権限を持つ制限されたパスに書き込まれているか
+- ログの保持・バックアップ・転送・削除ポリシーがアプリケーションの機密度と一致しているか
+- サンプルレートが本番トラフィックに対して十分に低く、迅速に無効化できるか
+- ログから生成されたレポートが生のJSONLログと同等の注意を持って扱われているか
 
-## Configuration
+初期プロトタイプにはマスキングポリシーエンジンは含まれていません。観測フィールドにシークレット、トークン、メールアドレス、氏名、住所、電話番号、決済識別子、顧客識別子が含まれる可能性がある場合は、アプリケーション側でフィルタリングを追加するか、キャプチャ範囲が明確になるまでphp-uneartherを無効のままにしてください。
 
-Adapters may load configuration differently, but the package normalizes them into the same options.
+## 設定
+
+アダプターによって設定の読み込み方は異なりますが、パッケージは同じオプションに正規化します。
 
 ```php
 array(
@@ -133,23 +135,23 @@ array(
 )
 ```
 
-For CodeIgniter3, pass this array through hook params. A future Laravel adapter can use the same keys from `config/unearther.php`.
+CodeIgniter3の場合、このarrayをhookのparamsとして渡してください。将来のLaravelアダプターでは`config/unearther.php`から同じキーを利用できます。
 
-`codeigniter3.sql_capture` can be `query_history`, `observed_db`, or `none`. The older `codeigniter3.capture_query_history` key is still accepted as a compatibility alias.
+`codeigniter3.sql_capture`には`query_history`、`observed_db`、`none`を指定できます。古い`codeigniter3.capture_query_history`キーも互換性のエイリアスとして引き続き受け付けます。
 
-`sql.capture_text` is off by default. When set to `true`, SQL events include the raw SQL string, normalized SQL, and literal-insensitive fingerprint SQL. This is useful for migration analysis, but it can expose sensitive values when an application builds SQL with literals instead of bind parameters.
+`sql.capture_text`はデフォルトでオフです。SQLイベントは常に`statement_normalized`（リテラルを`{parameter}`に置換）と`statement_hash`を出力します。`capture_text`を`true`にすると生SQLが`statement_text`にも書き込まれます；それ以外は`null`です。テキストキャプチャの有効化は移行分析には有用ですが、アプリケーションがリテラルでSQLを構築している場合に機密値を露出する可能性があります。
 
-`failure_mode` controls what happens when php-unearther itself fails while observing a request. The default is `throw` so installation or configuration problems are visible during rollout. Set it to `log` in production if the application must continue even when observation fails. In `log` mode, CodeIgniter3 uses `log_message('error', ...)` when available and falls back to `error_log()`.
+`failure_mode`は、php-unearther自体がリクエスト観測中に失敗した場合の動作を制御します。デフォルトは`throw`で、インストールや設定の問題がロールアウト中に可視化されます。本番環境で観測失敗時もアプリケーションを継続させたい場合は`log`に設定してください。`log`モードでは、CodeIgniter3は利用可能な場合`log_message('error', ...)`を使用し、それ以外は`error_log()`にフォールバックします。
 
-`http.endpoint_patterns` is optional. When a request matches a configured Laravel-style path pattern such as `/api/users/{id}`, reports group it by that canonical endpoint path. php-unearther does not infer path parameters automatically; unconfigured paths are grouped by the raw request path.
+`http.endpoint_patterns`はオプションです。リクエストが`/api/users/{id}`のようなLaravelスタイルのパスパターンにマッチした場合、観測の`path_pattern`がその正規化された形式に設定され、レポートがそれでグループ化されます。php-uneartherはパスパラメーターを自動推定しません；設定されていないパスは`path_pattern`が生のリクエストパスと同じ値になります。
 
-## CodeIgniter3 Usage
+## CodeIgniter3での使い方
 
-The current CodeIgniter3 adapter assumes a classic PHP request lifecycle such as PHP-FPM, CGI, or Apache mod_php. Long-lived worker runtimes such as Swoole, RoadRunner, and ReactPHP are not supported by this prototype because the hook keeps request observation state in static process-local fields.
+現在のCodeIgniter3アダプターは、PHP-FPM、CGI、Apache mod_phpなどの従来型PHPリクエストライフサイクルを前提としています。Swoole、RoadRunner、ReactPHPなどの長期稼働ワーカーランタイムは、このプロトタイプではサポートされていません（フックがリクエスト観測状態をプロセスローカルのstaticフィールドに保持するため）。
 
-CodeIgniter3 does not natively assume namespaced Composer classes in hook definitions. The safest setup is to create a small bridge hook inside the application and let that bridge call php-unearther.
+CodeIgniter3はhook定義内でnamespaceつきComposerクラスをネイティブに前提としていません。最も安全なセットアップは、アプリケーション内に小さなブリッジhookを作成し、そこからphp-uneartherを呼び出す方法です。
 
-Create `application/hooks/UneartherHook.php`:
+`application/hooks/UneartherHook.php`を作成してください：
 
 ```php
 <?php
@@ -178,7 +180,7 @@ class UneartherHook
 }
 ```
 
-Then register the bridge in `application/config/hooks.php`.
+次に`application/config/hooks.php`でブリッジを登録します：
 
 ```php
 $hook['pre_system'][] = array(
@@ -204,17 +206,17 @@ $hook['post_system'][] = array(
 );
 ```
 
-### CodeIgniter3 SQL Capture
+### CodeIgniter3のSQLキャプチャ
 
-By default, the CodeIgniter3 hook uses `sql_capture => query_history` and reads `$CI->db->queries` and `$CI->db->query_times` at the end of sampled requests. This is intentionally used as the first capture strategy because it can observe SQL produced by Query Builder calls such as `where()`, `get()`, `insert()`, and direct `query()` calls, as long as CodeIgniter's `save_queries` setting is enabled.
+デフォルトでは、CodeIgniter3フックは`sql_capture => query_history`を使用し、サンプリングされたリクエストの終了時に`$CI->db->queries`と`$CI->db->query_times`を読み取ります。これを最初のキャプチャ戦略として採用しているのは、CodeIgniterの`save_queries`設定が有効であれば、`where()`、`get()`、`insert()`、直接の`query()`呼び出しなどのQuery Builderの呼び出しで生成されるSQLを観測できるためです。
 
-This strategy has tradeoffs:
+この戦略にはトレードオフがあります：
 
-- It depends on CodeIgniter query history being available
-- It does not provide precise caller file/line information
-- It may increase memory usage if many queries are executed in one request
+- CodeIgniterのクエリ履歴が利用可能であることに依存する
+- 正確なcallerのファイル/行情報が得られない
+- 1リクエストで多数のクエリが実行される場合、メモリ使用量が増加する可能性がある
 
-You can disable SQL capture:
+SQLキャプチャを無効化することもできます：
 
 ```php
 'codeigniter3' => array(
@@ -222,7 +224,7 @@ You can disable SQL capture:
 )
 ```
 
-An experimental DB wrapper is also available for application bootstrap points you control.
+制御できるアプリケーションのブートストラップポイント向けに、実験的なDBラッパーも利用可能です：
 
 ```php
 use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
@@ -233,13 +235,13 @@ $CI =& get_instance();
 $CI->db = new ObservedDb($CI->db, Hook::collector());
 ```
 
-To include SQL text when using `ObservedDb`, pass an analyzer with text capture enabled:
+`ObservedDb`使用時にSQLテキストも含めたい場合は、テキストキャプチャを有効にしたアナライザーを渡します：
 
 ```php
 $CI->db = new ObservedDb($CI->db, Hook::collector(), new SqlAnalyzer(true));
 ```
 
-When using `ObservedDb`, set `sql_capture => observed_db` so the hook does not also record CodeIgniter query history.
+`ObservedDb`を使用する場合は、フックがCodeIgniterのクエリ履歴を二重に記録しないよう`sql_capture => observed_db`を設定してください：
 
 ```php
 'codeigniter3' => array(
@@ -247,15 +249,15 @@ When using `ObservedDb`, set `sql_capture => observed_db` so the hook does not a
 )
 ```
 
-The wrapper records calls made through `query()`, but it is not a complete Query Builder interception strategy. In many CI3 applications, query history capture is the more practical baseline.
+このラッパーは`query()`を通じた呼び出しを記録しますが、Query Builderを完全にインターセプトする戦略ではありません。多くのCI3アプリケーションでは、クエリ履歴キャプチャの方がより現実的なベースラインです。
 
-### HTTP Shape Capture
+### HTTPシェイプキャプチャ
 
-For sampled requests, the CodeIgniter3 hook records `query_shape` and `request_shape`. If the request content type is `application/json` or a structured `+json` type, php-unearther decodes the body and records the JSON shape. If the body is invalid JSON, too large, or not JSON, it falls back to `$_POST` shape.
+サンプリングされたリクエストに対して、CodeIgniter3フックは`query_shape`と`request_shape`を記録します。リクエストのContent-Typeが`application/json`または構造化された`+json`タイプの場合、php-uneartherはボディをデコードしてJSONの形状を記録します。ボディが無効なJSON、サイズ超過、またはJSON以外の場合は`$_POST`の形状にフォールバックします。
 
-JSON request shape capture reads `php://input`. On supported PHP runtimes this is normally reusable, but if application bootstrap code consumes or replaces the raw input before the hook runs, php-unearther may not be able to see the JSON body and will fall back to `$_POST`.
+JSONリクエスト形状のキャプチャは`php://input`を読み取ります。サポートされているPHPランタイムでは通常再読み取り可能ですが、フックが実行される前にアプリケーションのブートストラップコードが生の入力を消費または置き換えた場合、php-uneartherはJSONボディを読み取れず`$_POST`にフォールバックします。
 
-Response body shape capture is off by default. Enable it only after reviewing the response surface:
+レスポンスボディの形状キャプチャはデフォルトでオフです。レスポンスの内容を確認してから有効化してください：
 
 ```php
 'http' => array(
@@ -264,38 +266,38 @@ Response body shape capture is off by default. Enable it only after reviewing th
 )
 ```
 
-When enabled, the CodeIgniter3 hook reads `$CI->output->get_output()` for sampled responses with a JSON content type and records only the response shape.
+有効化すると、CodeIgniter3フックはJSONコンテンツタイプを持つサンプリングされたレスポンスに対して`$CI->output->get_output()`を読み取り、レスポンスの形状のみを記録します。
 
-## Trace IDs
+## トレースID
 
-Each sampled request receives a generated trace ID when observation starts. The ID contains a UTC timestamp prefix and a 128-bit random suffix:
+各サンプリングされたリクエストは、観測開始時に生成されたトレースIDを受け取ります。IDにはUTCタイムスタンプのプレフィックスと128ビットのランダムなサフィックスが含まれます：
 
 ```text
 20260601T101122-3f4e3f8b9c0d4d67a1b2c3d4e5f60718
 ```
 
-This keeps IDs sortable by start time while making collisions practically unlikely for normal sampling volumes.
+これにより、開始時刻でのソートが可能になりながら、通常のサンプリング量では衝突が実質的に発生しません。
 
-## Log Rotation
+## ログローテーション
 
-JSONL sinks support daily file rotation through a `{date}` placeholder in the path.
+JOSNLシンクはパスの`{date}`プレースホルダーによる日次ファイルローテーションをサポートしています：
 
 ```php
 'sink_path' => APPPATH . 'logs/unearther-{date}.jsonl'
 ```
 
-This writes files such as:
+これにより以下のようなファイルが書き出されます：
 
 ```text
 unearther-2026-06-01.jsonl
 unearther-2026-06-02.jsonl
 ```
 
-If the path does not include `{date}`, php-unearther writes to the exact path as-is.
+パスに`{date}`が含まれない場合、php-uneartherはそのパスにそのまま書き込みます。
 
-## Guzzle Usage
+## Guzzleでの使い方
 
-Attach the middleware to a Guzzle handler stack.
+Guzzleのハンドラースタックにミドルウェアをアタッチします：
 
 ```php
 use CoffeeR\Unearther\Guzzle\UneartherMiddleware;
@@ -305,37 +307,39 @@ $stack = HandlerStack::create();
 $stack->push(UneartherMiddleware::create($collector));
 ```
 
-External HTTP calls made through that client will be added to the current trace.
+そのクライアントを通じた外部HTTP呼び出しが現在のトレースに追加されます。
 
-## Reports
+## レポート
 
-Generate a Markdown behavior report:
+Markdown形式の振る舞いレポートを生成する：
 
 ```bash
 vendor/bin/unearth report application/logs/unearther.jsonl --format md
 ```
 
-Generate a machine-readable aggregate report:
+機械可読な集計レポートを生成する：
 
 ```bash
 vendor/bin/unearth report application/logs/unearther.jsonl --format json
 ```
 
-The report groups traces by endpoint and observed execution pattern. A pattern is currently based on SQL operation/table/hash flow plus Guzzle external HTTP calls. Pattern granularity is fixed in this prototype and is not configurable.
+レポートはエンドポイントと観測された実行パターンでトレースをグループ化します。パターンは現在、SQLの操作/テーブル/ハッシュのフローとGuzzle外部HTTP呼び出しに基づいています。パターンの粒度はこのプロトタイプでは固定されており、設定できません。
 
-If `http.endpoint_patterns` is configured during capture, reports prefer the recorded canonical endpoint path. Reports also include endpoint-level error counts and grouped error summaries from trace `errors`.
+キャプチャ時に`http.endpoint_patterns`が設定されている場合、レポートは記録された`path_pattern`でグループ化されます。レポートにはエンドポイントレベルのエラー数と、トレースの`errors`からグループ化されたエラーサマリーも含まれます。
 
-Aggregate reports and Markdown reports do not render raw SQL text. They include statement hashes and fingerprint SQL examples when those fields were captured.
+Markdownレポートの各パターンは`#### Representative Case`ブロックで終わり、そのパターンで最初に観測されたトレースの名前、`path (canonical)`と`path (concrete)`、`statement_normalized`形式のSQLリスト、および外部API呼び出しが示されます。キャプチャ時に`sql.capture_text`が有効だった場合、正規化された形式の横に具体的なSQLも表示されます。
 
-The CLI currently supports report generation only. It does not include a `compare` command or `--from` / `--to` date filtering.
+集計レポートとMarkdownレポートは、キャプチャ時に`sql.capture_text`が有効でなければ生SQLテキストをレンダリングしません。SQLフローテーブルには常に`statement_hash`と`statement_normalized`が含まれます。
 
-Example pattern:
+CLIは現在レポート生成のみをサポートしています。`compare`コマンドや`--from` / `--to`による日付フィルタリングは含まれていません。
+
+パターンの例：
 
 ```text
 SELECT M_SHOHIN -> INSERT T_CART
 ```
 
-## Development
+## 開発
 
 ```bash
 composer install
@@ -343,24 +347,24 @@ vendor/bin/phpunit
 php bin/unearth report tests/Fixtures/jsonl/cart_add.jsonl --format md
 ```
 
-The test suite is fixture-driven and focuses on deterministic behavior:
+テストスイートはフィクスチャ駆動で、決定論的な動作に焦点を当てています：
 
-- shape extraction
-- JSON request and response shape extraction
-- SQL operation/table extraction
-- endpoint pattern normalization
-- CodeIgniter3 hook lifecycle behavior
-- JSONL writing
-- CLI warning behavior
-- endpoint aggregation
-- error aggregation
-- execution pattern grouping
-- Markdown rendering
+- shape抽出
+- JSONリクエスト・レスポンスのshape抽出
+- SQLの操作/テーブル抽出
+- エンドポイントパターンの正規化
+- CodeIgniter3フックのライフサイクル動作
+- JSONLの書き込み
+- CLIの警告動作
+- エンドポイントの集計
+- エラーの集計
+- 実行パターンのグループ化
+- Markdownのレンダリング
 
-## Built With Codex
+## OpenAI Codexで構築
 
-This prototype was designed and implemented with help from OpenAI Codex.
+このプロトタイプはOpenAI Codexの助けを借りて設計・実装されました。
 
-## License
+## ライセンス
 
 MIT

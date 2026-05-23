@@ -11,47 +11,25 @@ class SqlAnalyzer
         $this->captureText = (bool) $captureText;
     }
 
-    public function analyze($sql, array $binds = array(), array $caller = array(), $durationMs = null)
+    public function analyze($sql, array $binds = array(), array $caller = array())
     {
         $rawSql = (string) $sql;
-        $normalized = $this->normalize($rawSql);
-        $fingerprint = $this->fingerprintNormalized($normalized);
+        $statementNormalized = $this->normalizeWithPlaceholder($rawSql);
 
-        $event = array(
-            'operation' => $this->operation($normalized),
-            'tables' => $this->tables($normalized),
-            'duration_ms' => $durationMs,
-            'statement_hash' => $this->statementHash($fingerprint),
+        return array(
+            'operation' => $this->operation($statementNormalized),
+            'tables' => $this->tables($statementNormalized),
+            'statement_normalized' => $statementNormalized,
+            'statement_text' => $this->captureText ? $rawSql : null,
+            'statement_hash' => $this->statementHash($statementNormalized),
             'bind_shape' => $this->bindShape($binds),
             'caller' => $caller,
         );
-
-        if ($this->captureText) {
-            $event['raw_sql'] = $rawSql;
-            $event['normalized_sql'] = $normalized;
-            $event['fingerprint_sql'] = $fingerprint;
-        }
-
-        return $event;
     }
 
-    public function normalize($sql)
+    public function statementHash($statementNormalized)
     {
-        $sql = preg_replace('/--.*$/m', ' ', $sql);
-        $sql = preg_replace('/\/\*.*?\*\//s', ' ', $sql);
-        $sql = preg_replace('/\s+/', ' ', trim($sql));
-
-        return $sql;
-    }
-
-    public function fingerprint($sql)
-    {
-        return $this->fingerprintNormalized($this->normalize($sql));
-    }
-
-    public function statementHash($normalizedSql)
-    {
-        return 'sha256:' . hash('sha256', $normalizedSql);
+        return 'sha256:' . hash('sha256', $statementNormalized);
     }
 
     public function operation($sql)
@@ -89,6 +67,17 @@ class SqlAnalyzer
         return $tables;
     }
 
+    private function normalizeWithPlaceholder($sql)
+    {
+        $sql = preg_replace('/--.*$/m', ' ', $sql);
+        $sql = preg_replace('/\/\*.*?\*\//s', ' ', $sql);
+        $sql = preg_replace("/'(?:''|[^'])*'/", '{parameter}', $sql);
+        $sql = preg_replace('/\b\d+(?:\.\d+)?\b/', '{parameter}', $sql);
+        $sql = preg_replace('/\s+/', ' ', trim($sql));
+
+        return $sql;
+    }
+
     private function fromTables($sql)
     {
         $tables = array();
@@ -117,15 +106,6 @@ class SqlAnalyzer
         if ($table !== '' && !in_array($table, $tables, true)) {
             $tables[] = $table;
         }
-    }
-
-    private function fingerprintNormalized($normalizedSql)
-    {
-        $sql = preg_replace("/'(?:''|[^'])*'/", '?', $normalizedSql);
-        $sql = preg_replace('/\b\d+(?:\.\d+)?\b/', '?', $sql);
-        $sql = preg_replace('/\s+/', ' ', trim($sql));
-
-        return $sql;
     }
 
     private function bindShape(array $binds)

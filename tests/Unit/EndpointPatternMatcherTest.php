@@ -12,7 +12,7 @@ class EndpointPatternMatcherTest extends TestCase
         $matcher = new EndpointPatternMatcher();
 
         $this->assertSame(array(
-            'endpoint_path' => '/api/users/{id}',
+            'path_pattern' => '/api/users/{id}',
             'endpoint_name' => 'users.show',
         ), $matcher->match('GET', '/api/users/123?debug=1', array(
             array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'users.show'),
@@ -34,7 +34,7 @@ class EndpointPatternMatcherTest extends TestCase
         $matcher = new EndpointPatternMatcher();
 
         $this->assertSame(array(
-            'endpoint_path' => '/api/users/{id}',
+            'path_pattern' => '/api/users/{id}',
             'endpoint_name' => 'first',
         ), $matcher->match('GET', '/api/users/123', array(
             array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'first'),

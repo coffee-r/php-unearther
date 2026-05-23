@@ -17,9 +17,6 @@ class MarkdownRenderer
             $lines[] = '## ' . $endpoint['method'] . ' ' . $endpoint['path'];
             $lines[] = '';
             $lines[] = '- Observed requests: `' . $endpoint['observed_count'] . '`';
-            $lines[] = '- Avg duration: `' . $endpoint['avg_duration_ms'] . 'ms`';
-            $lines[] = '- P95 duration: `' . $endpoint['p95_duration_ms'] . 'ms`';
-            $lines[] = '- Max duration: `' . $endpoint['max_duration_ms'] . 'ms`';
             $lines[] = '- Error rate: `' . $this->percent(isset($endpoint['error_rate']) ? $endpoint['error_rate'] : 0.0) . '`';
             $lines[] = '';
             $lines[] = '### Status Codes';
@@ -67,19 +64,84 @@ class MarkdownRenderer
                 $lines[] = '';
                 $lines[] = '#### SQL Statements';
                 $lines[] = '';
-                $lines[] = '| Step | Operation | Tables | Statement Hash | Fingerprint SQL | Count | Example Source |';
+                $lines[] = '| Step | Operation | Tables | Statement Hash | Statement (normalized) | Count | Example Source |';
                 $lines[] = '|---:|---|---|---|---|---:|---|';
                 foreach ($pattern['sql_flow'] as $step) {
-                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell(isset($step['statement_hash']) ? $step['statement_hash'] : '') . ' | ' . $this->tableCell(isset($step['fingerprint_sql']) ? $step['fingerprint_sql'] : '') . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
+                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell(isset($step['statement_hash']) ? $step['statement_hash'] : '') . ' | ' . $this->tableCell(isset($step['statement_normalized']) ? $step['statement_normalized'] : '') . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
                 }
                 if (count($pattern['sql_flow']) === 0) {
                     $lines[] = '| - | - | - | - | - | 0 | - |';
                 }
                 $lines[] = '';
+                $lines = array_merge($lines, $this->representativeSection($pattern));
+                $lines[] = '';
             }
         }
 
         return implode("\n", $lines) . "\n";
+    }
+
+    private function representativeSection(array $pattern)
+    {
+        $lines = array();
+        $lines[] = '#### Representative Case';
+        $lines[] = '';
+
+        $rep = isset($pattern['representative']) && is_array($pattern['representative']) ? $pattern['representative'] : array();
+
+        $lines[] = '- trace_id: `' . $this->backtickValue(isset($rep['trace_id']) ? $rep['trace_id'] : '-') . '`';
+        $lines[] = '- status: `' . $this->backtickValue(isset($rep['status']) && $rep['status'] !== null ? $rep['status'] : '-') . '`';
+        $lines[] = '- path (canonical): `' . $this->backtickValue(isset($rep['path_pattern']) && $rep['path_pattern'] !== null ? $rep['path_pattern'] : '-') . '`';
+        $lines[] = '- path (concrete): `' . $this->backtickValue(isset($rep['path']) && $rep['path'] !== null ? $rep['path'] : '-') . '`';
+
+        $queryRaw = isset($rep['query_raw']) ? $rep['query_raw'] : null;
+        $queryShape = isset($rep['query_shape']) ? $rep['query_shape'] : array();
+        if ($queryRaw !== null && $queryRaw !== '') {
+            $lines[] = '- query: `' . $this->backtickValue($queryRaw) . '`';
+        } elseif (is_array($queryShape) && count($queryShape) > 0) {
+            $lines[] = '- query shape: `' . $this->backtickValue($this->encodeInline($queryShape)) . '`';
+        } else {
+            $lines[] = '- query: `{}` (none observed)';
+        }
+
+        $sql = isset($rep['sql']) && is_array($rep['sql']) ? $rep['sql'] : array();
+        $lines[] = '- SQL count: `' . count($sql) . '`';
+        foreach ($sql as $stmt) {
+            $normalized = isset($stmt['statement_normalized']) ? (string) $stmt['statement_normalized'] : '';
+            $text = isset($stmt['statement_text']) ? $stmt['statement_text'] : null;
+            $line = '  - `' . $this->backtickValue($normalized) . '`';
+            if ($text !== null && $text !== '') {
+                $line .= ' (concrete: `' . $this->backtickValue($text) . '`)';
+            }
+            $lines[] = $line;
+        }
+
+        $ext = isset($rep['external_http']) && is_array($rep['external_http']) ? $rep['external_http'] : array();
+        if (count($ext) === 0) {
+            $lines[] = '- external API calls: none';
+        } else {
+            $lines[] = '- external API calls:';
+            foreach ($ext as $call) {
+                $method = isset($call['method']) ? $call['method'] : '';
+                $host = isset($call['host']) ? $call['host'] : '';
+                $path = isset($call['path']) ? $call['path'] : '';
+                $status = isset($call['status']) && $call['status'] !== null ? ' -> ' . $call['status'] : '';
+                $lines[] = '  - `' . $this->backtickValue($method . ' ' . $host . $path . $status) . '`';
+            }
+        }
+
+        return $lines;
+    }
+
+    private function encodeInline($value)
+    {
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    private function backtickValue($value)
+    {
+        $value = (string) $value;
+        return str_replace('`', '\\`', $value);
     }
 
     private function shapeTable($shape)

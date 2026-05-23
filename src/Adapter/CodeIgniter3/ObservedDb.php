@@ -20,8 +20,6 @@ class ObservedDb
 
     public function query($sql, $binds = false, $returnObject = null)
     {
-        $startedAt = microtime(true);
-
         if ($returnObject === null) {
             $result = $this->db->query($sql, $binds);
         } else {
@@ -37,8 +35,7 @@ class ObservedDb
         $this->collector->addSql($this->analyzer->analyze(
             $sql,
             $bindArray,
-            $this->caller(),
-            (int) round((microtime(true) - $startedAt) * 1000)
+            $this->caller()
         ));
 
         return $result;
