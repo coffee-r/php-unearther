@@ -26,6 +26,7 @@
     "bin/unearth"
   ],
   "scripts": {
-    "test": "phpunit"
+    "test": "phpunit",
+    "e2e:ci3-sqlite": "bash tests/e2e/codeigniter3-sqlite/scripts/run.sh"
   }
 }

@@ -61,11 +61,11 @@ class SqlAnalyzer
         }
 
         $patterns = array(
-            '/\bjoin\s+([a-zA-Z0-9_.$]+)/i',
-            '/\binto\s+([a-zA-Z0-9_.$]+)/i',
-            '/\bupdate\s+([a-zA-Z0-9_.$]+)/i',
-            '/\bdelete\s+from\s+([a-zA-Z0-9_.$]+)/i',
-            '/\bmerge\s+into\s+([a-zA-Z0-9_.$]+)/i',
+            '/\bjoin\s+([`"\[]?[a-zA-Z0-9_.$]+[`"\]]?)/i',
+            '/\binto\s+([`"\[]?[a-zA-Z0-9_.$]+[`"\]]?)/i',
+            '/\bupdate\s+([`"\[]?[a-zA-Z0-9_.$]+[`"\]]?)/i',
+            '/\bdelete\s+from\s+([`"\[]?[a-zA-Z0-9_.$]+[`"\]]?)/i',
+            '/\bmerge\s+into\s+([`"\[]?[a-zA-Z0-9_.$]+[`"\]]?)/i',
         );
 
         foreach ($patterns as $pattern) {

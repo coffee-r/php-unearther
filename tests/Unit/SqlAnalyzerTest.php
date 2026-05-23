@@ -30,6 +30,15 @@ class SqlAnalyzerTest extends TestCase
         $this->assertSame(array('ORDERS'), $analyzer->tables('merge into orders using dual on (id = ?)'));
     }
 
+    public function testAnalyzesQuotedTableNames()
+    {
+        $analyzer = new SqlAnalyzer();
+
+        $this->assertSame(array('USERS'), $analyzer->tables('INSERT INTO "users" ("email") VALUES (?)'));
+        $this->assertSame(array('ORDERS'), $analyzer->tables('UPDATE `orders` SET status = ?'));
+        $this->assertSame(array('ORDER_PRODUCTS'), $analyzer->tables('DELETE FROM [order_products] WHERE id = ?'));
+    }
+
     public function testStatementHashIsLiteralInsensitive()
     {
         $analyzer = new SqlAnalyzer();

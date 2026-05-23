@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: ../../..
+      dockerfile: tests/e2e/codeigniter3-sqlite/Dockerfile
+    depends_on:
+      - fake-payment
+    ports:
+      - "18080:80"
+    environment:
+      PAYMENT_BASE_URL: "http://fake-payment:8080"
+      UNEARTHER_E2E_HOOK_MARKERS: "1"
+
+  fake-payment:
+    image: php:7.3-cli
+    working_dir: /srv/payment
+    command: php -S 0.0.0.0:8080 index.php
+    volumes:
+      - ./fake-payment:/srv/payment:ro
