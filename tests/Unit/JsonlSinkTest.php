@@ -44,4 +44,20 @@ class JsonlSinkTest extends TestCase
         @unlink($second);
         @rmdir($base);
     }
+
+    public function testThrowsWhenWriteFails()
+    {
+        $path = sys_get_temp_dir() . '/php-unearther-sink-dir-' . uniqid('', true);
+        mkdir($path);
+        $sink = new JsonlSink($path);
+
+        try {
+            $sink->write(array('trace_id' => 'a'));
+            $this->fail('Expected sink write failure to throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('JSONL sink write failed.', $exception->getMessage());
+        } finally {
+            @rmdir($path);
+        }
+    }
 }

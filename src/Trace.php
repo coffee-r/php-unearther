@@ -4,12 +4,15 @@ namespace CoffeeR\Unearther;
 
 class Trace
 {
+    const SCHEMA_VERSION = 1;
+
     private $traceId;
     private $service;
     private $framework;
     private $sampled;
     private $startedAt;
     private $startedAtFloat;
+    private $durationMs;
     private $http = array();
     private $calls = array();
     private $sql = array();
@@ -75,20 +78,33 @@ class Trace
         $this->errors[] = $error;
     }
 
+    public function markFinished()
+    {
+        if ($this->durationMs === null) {
+            $this->durationMs = $this->elapsedDurationMs();
+        }
+    }
+
     public function toArray()
     {
         return array(
+            'schema_version' => self::SCHEMA_VERSION,
             'trace_id' => $this->traceId,
             'service' => $this->service,
             'framework' => $this->framework,
             'sampled' => $this->sampled,
             'started_at' => $this->startedAt,
-            'duration_ms' => (int) round((microtime(true) - $this->startedAtFloat) * 1000),
+            'duration_ms' => $this->durationMs === null ? $this->elapsedDurationMs() : $this->durationMs,
             'http' => $this->http,
             'calls' => $this->calls,
             'sql' => $this->sql,
             'external_http' => $this->externalHttp,
             'errors' => $this->errors,
         );
+    }
+
+    private function elapsedDurationMs()
+    {
+        return (int) round((microtime(true) - $this->startedAtFloat) * 1000);
     }
 }

@@ -3,6 +3,7 @@
 namespace CoffeeR\Unearther\Tests\Unit;
 
 use CoffeeR\Unearther\Collector;
+use CoffeeR\Unearther\FailureHandler;
 use CoffeeR\Unearther\Sampling\Sampler;
 use CoffeeR\Unearther\Sink\SinkInterface;
 use PHPUnit\Framework\TestCase;
@@ -33,6 +34,35 @@ class CollectorTest extends TestCase
 
         $this->assertCount(0, $sink->traces);
     }
+
+    public function testThrowsSinkFailuresByDefault()
+    {
+        $collector = new Collector(new Sampler(1.0), new ThrowingSink());
+        $collector->start('legacy-api', 'codeigniter3');
+
+        $this->expectException(\RuntimeException::class);
+        $collector->finish();
+    }
+
+    public function testLogsSinkFailuresInLogMode()
+    {
+        $messages = array();
+        $logger = function ($message) use (&$messages) {
+            $messages[] = $message;
+        };
+        $collector = new Collector(
+            new Sampler(1.0),
+            new ThrowingSink(),
+            new FailureHandler('log', $logger)
+        );
+
+        $collector->start('legacy-api', 'codeigniter3');
+        $trace = $collector->finish();
+
+        $this->assertNotNull($trace);
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('[php-unearther] sink write failed: RuntimeException', $messages[0]);
+    }
 }
 
 class MemorySink implements SinkInterface
@@ -42,5 +72,13 @@ class MemorySink implements SinkInterface
     public function write(array $trace)
     {
         $this->traces[] = $trace;
+    }
+}
+
+class ThrowingSink implements SinkInterface
+{
+    public function write(array $trace)
+    {
+        throw new \RuntimeException('sink unavailable with possible details');
     }
 }

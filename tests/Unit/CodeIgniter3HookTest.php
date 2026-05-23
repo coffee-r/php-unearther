@@ -7,6 +7,12 @@ namespace {
             return isset($GLOBALS['__php_unearther_ci_instance']) ? $GLOBALS['__php_unearther_ci_instance'] : null;
         }
     }
+    if (!function_exists('log_message')) {
+        function log_message($level, $message)
+        {
+            $GLOBALS['__php_unearther_log_messages'][] = array($level, $message);
+        }
+    }
 }
 
 namespace CoffeeR\Unearther\Tests\Unit {
@@ -25,6 +31,7 @@ namespace CoffeeR\Unearther\Tests\Unit {
             $_SERVER['REQUEST_URI'] = '/api/test?debug=1';
             unset($_SERVER['CONTENT_TYPE'], $_SERVER['HTTP_CONTENT_TYPE']);
             $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_unearther_log_messages'] = array();
         }
 
         protected function tearDown(): void
@@ -40,6 +47,7 @@ namespace CoffeeR\Unearther\Tests\Unit {
             }
 
             unset($GLOBALS['__php_unearther_ci_instance']);
+            unset($GLOBALS['__php_unearther_log_messages']);
             $_GET = array();
             $_POST = array();
             unset($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'], $_SERVER['CONTENT_TYPE'], $_SERVER['HTTP_CONTENT_TYPE']);
@@ -89,6 +97,23 @@ namespace CoffeeR\Unearther\Tests\Unit {
             $this->assertSame('SELECT', $trace['sql'][0]['operation']);
             $this->assertSame(array('USERS'), $trace['sql'][0]['tables']);
             $this->assertSame(12, $trace['sql'][0]['duration_ms']);
+        }
+
+        public function testQueryHistoryCaptureCanRecordSqlText()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(" select * from users where id = 42 and name = 'coffee' "), array(0.012), null);
+
+            (new Hook())->start($this->config($path, array(
+                'codeigniter3' => array('sql_capture' => 'query_history'),
+                'sql' => array('capture_text' => true),
+            )));
+            (new Hook())->finish();
+
+            $sql = $this->readTrace($path)['sql'][0];
+            $this->assertSame(" select * from users where id = 42 and name = 'coffee' ", $sql['raw_sql']);
+            $this->assertSame("select * from users where id = 42 and name = 'coffee'", $sql['normalized_sql']);
+            $this->assertSame('select * from users where id = ? and name = ?', $sql['fingerprint_sql']);
         }
 
         public function testObservedDbModeDoesNotAlsoRecordQueryHistory()
@@ -165,6 +190,91 @@ namespace CoffeeR\Unearther\Tests\Unit {
             ), $trace['http']['response_shape']);
         }
 
+        public function testEndpointPatternIsRecordedWhenConfigured()
+        {
+            $path = $this->tempPath();
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $_SERVER['REQUEST_URI'] = '/api/users/123?debug=1';
+
+            (new Hook())->start($this->config($path, array(
+                'http' => array(
+                    'endpoint_patterns' => array(
+                        array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'users.show'),
+                    ),
+                ),
+            )));
+            (new Hook())->finish();
+
+            $trace = $this->readTrace($path);
+            $this->assertSame('/api/users/123', $trace['http']['path']);
+            $this->assertSame('/api/users/{id}', $trace['http']['endpoint_path']);
+            $this->assertSame('users.show', $trace['http']['endpoint_name']);
+        }
+
+        public function testEndpointPatternOverridesReplacePreviousLists()
+        {
+            $path = $this->tempPath();
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            $_SERVER['REQUEST_URI'] = '/api/legacy/123';
+
+            $hook = new Hook($this->config($path, array(
+                'http' => array(
+                    'endpoint_patterns' => array(
+                        array('method' => 'GET', 'path' => '/api/legacy/{id}', 'name' => 'legacy.show'),
+                    ),
+                ),
+            )));
+            $hook->start(array(
+                'http' => array(
+                    'endpoint_patterns' => array(
+                        array('method' => 'GET', 'path' => '/api/orders/{id}', 'name' => 'orders.show'),
+                    ),
+                ),
+            ));
+            $hook->finish();
+
+            $trace = $this->readTrace($path);
+            $this->assertSame('/api/legacy/123', $trace['http']['path']);
+            $this->assertArrayNotHasKey('endpoint_path', $trace['http']);
+            $this->assertArrayNotHasKey('endpoint_name', $trace['http']);
+        }
+
+        public function testFinishThrowsObservationFailuresByDefaultAndResetsState()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
+
+            (new Hook())->start($this->config($path, array(
+                'http' => array('capture_json_response_shape' => true),
+            )));
+
+            try {
+                (new Hook())->finish();
+                $this->fail('Expected hook finish to throw observation failure.');
+            } catch (\RuntimeException $exception) {
+                $this->assertSame('output unavailable', $exception->getMessage());
+            }
+
+            $this->assertNull(Hook::collector());
+        }
+
+        public function testFinishLogsObservationFailuresInLogModeAndResetsState()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearther_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
+
+            (new Hook())->start($this->config($path, array(
+                'failure_mode' => 'log',
+                'http' => array('capture_json_response_shape' => true),
+            )));
+            $this->assertNull((new Hook())->finish());
+
+            $this->assertNull(Hook::collector());
+            $this->assertFileDoesNotExist($path);
+            $this->assertSame('error', $GLOBALS['__php_unearther_log_messages'][0][0]);
+            $this->assertStringContainsString('[php-unearther] codeigniter3 hook finish failed: RuntimeException', $GLOBALS['__php_unearther_log_messages'][0][1]);
+        }
+
         private function config($path, array $overrides = array())
         {
             $config = array(
@@ -231,6 +341,19 @@ namespace CoffeeR\Unearther\Tests\Unit {
         public function get_output()
         {
             return $this->output;
+        }
+    }
+
+    class ThrowingCodeIgniter3OutputStub
+    {
+        public function get_content_type()
+        {
+            return 'application/json';
+        }
+
+        public function get_output()
+        {
+            throw new \RuntimeException('output unavailable');
         }
     }
 }

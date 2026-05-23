@@ -20,6 +20,7 @@ class MarkdownRenderer
             $lines[] = '- Avg duration: `' . $endpoint['avg_duration_ms'] . 'ms`';
             $lines[] = '- P95 duration: `' . $endpoint['p95_duration_ms'] . 'ms`';
             $lines[] = '- Max duration: `' . $endpoint['max_duration_ms'] . 'ms`';
+            $lines[] = '- Error rate: `' . $this->percent(isset($endpoint['error_rate']) ? $endpoint['error_rate'] : 0.0) . '`';
             $lines[] = '';
             $lines[] = '### Status Codes';
             $lines[] = '';
@@ -27,6 +28,18 @@ class MarkdownRenderer
             $lines[] = '|---|---:|';
             foreach ($endpoint['status_codes'] as $status => $count) {
                 $lines[] = '| ' . $this->tableCell($status) . ' | ' . $this->tableCell($count) . ' |';
+            }
+            $lines[] = '';
+            $lines[] = '### Errors';
+            $lines[] = '';
+            $lines[] = '| Error | Count | Representative Trace |';
+            $lines[] = '|---|---:|---|';
+            $errors = isset($endpoint['errors']) && is_array($endpoint['errors']) ? $endpoint['errors'] : array();
+            foreach ($errors as $error) {
+                $lines[] = '| ' . $this->tableCell($error['error']) . ' | ' . $this->tableCell($error['count']) . ' | ' . $this->tableCell($error['representative_trace_id']) . ' |';
+            }
+            if (count($errors) === 0) {
+                $lines[] = '| - | 0 | - |';
             }
             $lines[] = '';
             $lines[] = '### Request Shape';
@@ -54,13 +67,13 @@ class MarkdownRenderer
                 $lines[] = '';
                 $lines[] = '#### SQL Statements';
                 $lines[] = '';
-                $lines[] = '| Step | Operation | Tables | Count | Example Source |';
-                $lines[] = '|---:|---|---|---:|---|';
+                $lines[] = '| Step | Operation | Tables | Statement Hash | Fingerprint SQL | Count | Example Source |';
+                $lines[] = '|---:|---|---|---|---|---:|---|';
                 foreach ($pattern['sql_flow'] as $step) {
-                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
+                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell(isset($step['statement_hash']) ? $step['statement_hash'] : '') . ' | ' . $this->tableCell(isset($step['fingerprint_sql']) ? $step['fingerprint_sql'] : '') . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
                 }
                 if (count($pattern['sql_flow']) === 0) {
-                    $lines[] = '| - | - | - | 0 | - |';
+                    $lines[] = '| - | - | - | - | - | 0 | - |';
                 }
                 $lines[] = '';
             }
@@ -136,5 +149,10 @@ class MarkdownRenderer
         $value = str_replace('`', '\\`', $value);
 
         return $value;
+    }
+
+    private function percent($rate)
+    {
+        return number_format(((float) $rate) * 100, 2, '.', '') . '%';
     }
 }

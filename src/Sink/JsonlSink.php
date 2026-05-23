@@ -17,7 +17,7 @@ class JsonlSink implements SinkInterface
     {
         $line = json_encode($trace, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         if ($line === false) {
-            return;
+            throw new \RuntimeException('JSONL sink could not encode trace.');
         }
 
         $path = $this->resolvePath($trace);
@@ -25,8 +25,14 @@ class JsonlSink implements SinkInterface
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
+        if (!is_dir($dir)) {
+            throw new \RuntimeException('JSONL sink directory could not be created.');
+        }
 
-        @file_put_contents($path, $line . "\n", FILE_APPEND | LOCK_EX);
+        $written = @file_put_contents($path, $line . "\n", FILE_APPEND | LOCK_EX);
+        if ($written === false) {
+            throw new \RuntimeException('JSONL sink write failed.');
+        }
     }
 
     public function resolvePath(array $trace)

@@ -10,12 +10,14 @@ class Collector
 {
     private $sampler;
     private $sink;
+    private $failureHandler;
     private $trace;
 
-    public function __construct(?Sampler $sampler = null, ?SinkInterface $sink = null)
+    public function __construct(?Sampler $sampler = null, ?SinkInterface $sink = null, ?FailureHandler $failureHandler = null)
     {
         $this->sampler = $sampler ?: new Sampler(1.0);
         $this->sink = $sink ?: new NullSink();
+        $this->failureHandler = $failureHandler ?: new FailureHandler();
     }
 
     public function start($service, $framework, array $http = array())
@@ -38,11 +40,16 @@ class Collector
         }
 
         $this->trace->setHttp($http);
+        $this->trace->markFinished();
         $trace = $this->trace;
         $this->trace = null;
 
         if ($trace->isSampled()) {
-            $this->sink->write($trace->toArray());
+            try {
+                $this->sink->write($trace->toArray());
+            } catch (\Throwable $exception) {
+                $this->failureHandler->handle($exception, 'sink write');
+            }
         }
 
         return $trace;

@@ -11,7 +11,7 @@ class Aggregator
         foreach ($traces as $trace) {
             $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
             $method = isset($http['method']) ? strtoupper($http['method']) : 'UNKNOWN';
-            $path = isset($http['path']) ? $http['path'] : 'unknown';
+            $path = isset($http['endpoint_path']) ? $http['endpoint_path'] : (isset($http['path']) ? $http['path'] : 'unknown');
             $endpointKey = $method . ' ' . $path;
 
             if (!isset($endpoints[$endpointKey])) {
@@ -36,9 +36,28 @@ class Aggregator
             if (isset($http['controller'])) {
                 $endpoint['controllers'][$http['controller']] = true;
             }
+            if (isset($http['endpoint_name'])) {
+                $endpoint['endpoint_names'][$http['endpoint_name']] = true;
+            }
 
             $endpoint['request_shape'] = $this->mergeShape($endpoint['request_shape'], isset($http['request_shape']) ? $http['request_shape'] : array());
             $endpoint['response_shape'] = $this->mergeShape($endpoint['response_shape'], isset($http['response_shape']) ? $http['response_shape'] : array());
+
+            $errors = $this->errorEvents($trace);
+            if (count($errors) > 0) {
+                $endpoint['error_count']++;
+                foreach ($errors as $error) {
+                    $label = $this->errorLabel($error);
+                    if (!isset($endpoint['errors'][$label])) {
+                        $endpoint['errors'][$label] = array(
+                            'error' => $label,
+                            'count' => 0,
+                            'representative_trace_id' => isset($trace['trace_id']) ? $trace['trace_id'] : null,
+                        );
+                    }
+                    $endpoint['errors'][$label]['count']++;
+                }
+            }
 
             $signature = $this->patternSignature($trace);
             if (!isset($endpoint['patterns'][$signature])) {
@@ -66,6 +85,8 @@ class Aggregator
                         'step' => $index + 1,
                         'operation' => $step['operation'],
                         'tables' => $step['tables'],
+                        'statement_hash' => $step['statement_hash'],
+                        'fingerprint_sql' => $step['fingerprint_sql'],
                         'count' => 0,
                         'example_source' => $this->sourceLabel($step['caller']),
                     );
@@ -90,10 +111,13 @@ class Aggregator
             $endpoint['avg_duration_ms'] = $this->avg($endpoint['durations']);
             $endpoint['p95_duration_ms'] = $this->percentile($endpoint['durations'], 95);
             $endpoint['max_duration_ms'] = count($endpoint['durations']) ? max($endpoint['durations']) : 0;
+            $endpoint['error_rate'] = $endpoint['observed_count'] > 0 ? round($endpoint['error_count'] / $endpoint['observed_count'], 4) : 0.0;
             unset($endpoint['durations']);
 
             $endpoint['routes'] = array_keys($endpoint['routes']);
             $endpoint['controllers'] = array_keys($endpoint['controllers']);
+            $endpoint['endpoint_names'] = array_keys($endpoint['endpoint_names']);
+            $endpoint['errors'] = array_values($endpoint['errors']);
 
             foreach ($endpoint['patterns'] as &$pattern) {
                 $pattern['statuses'] = array_keys($pattern['statuses']);
@@ -124,11 +148,15 @@ class Aggregator
             'observed_count' => 0,
             'routes' => array(),
             'controllers' => array(),
+            'endpoint_names' => array(),
             'status_codes' => array(),
             'durations' => array(),
             'avg_duration_ms' => 0,
             'p95_duration_ms' => 0,
             'max_duration_ms' => 0,
+            'error_count' => 0,
+            'error_rate' => 0.0,
+            'errors' => array(),
             'request_shape' => array(),
             'response_shape' => array(),
             'patterns' => array(),
@@ -140,7 +168,11 @@ class Aggregator
         $parts = array();
         foreach ($this->sqlFlow($trace) as $step) {
             $tables = count($step['tables']) ? implode('+', $step['tables']) : 'NO_TABLE';
-            $parts[] = $step['operation'] . ':' . $tables;
+            $part = $step['operation'] . ':' . $tables;
+            if ($step['statement_hash'] !== '') {
+                $part .= ':' . $step['statement_hash'];
+            }
+            $parts[] = $part;
         }
         foreach ($this->externalFlow($trace) as $external) {
             $parts[] = 'HTTP:' . $external['method'] . ':' . $external['host'] . $external['path'];
@@ -161,6 +193,8 @@ class Aggregator
             $flow[] = array(
                 'operation' => isset($item['operation']) ? $item['operation'] : 'UNKNOWN',
                 'tables' => isset($item['tables']) && is_array($item['tables']) ? $item['tables'] : array(),
+                'statement_hash' => isset($item['statement_hash']) ? (string) $item['statement_hash'] : '',
+                'fingerprint_sql' => isset($item['fingerprint_sql']) ? (string) $item['fingerprint_sql'] : '',
                 'caller' => isset($item['caller']) && is_array($item['caller']) ? $item['caller'] : array(),
             );
         }
@@ -195,6 +229,22 @@ class Aggregator
         }
 
         return $label;
+    }
+
+    private function errorEvents(array $trace)
+    {
+        return isset($trace['errors']) && is_array($trace['errors']) ? $trace['errors'] : array();
+    }
+
+    private function errorLabel(array $error)
+    {
+        $type = isset($error['type']) ? (string) $error['type'] : (isset($error['class']) ? (string) $error['class'] : 'error');
+        $message = isset($error['message']) ? (string) $error['message'] : '';
+        if ($message === '') {
+            return $type;
+        }
+
+        return $type . ': ' . $message;
     }
 
     private function mergeShape($left, $right)

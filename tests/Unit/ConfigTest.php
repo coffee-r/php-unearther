@@ -22,14 +22,17 @@ class ConfigTest extends TestCase
         $this->assertSame('shop-api', $config->service());
         $this->assertSame('codeigniter3', $config->framework());
         $this->assertSame(0.25, $config->sampleRate());
+        $this->assertSame('throw', $config->failureMode());
         $this->assertSame('jsonl', $config->sinkType());
         $this->assertSame('/tmp/unearther-{date}.jsonl', $config->sinkPath());
         $this->assertSame('Y-m-d', $config->sinkDateFormat());
         $this->assertTrue($config->codeIgniter3CaptureQueryHistory());
         $this->assertSame('query_history', $config->codeIgniter3SqlCapture());
+        $this->assertFalse($config->captureSqlText());
         $this->assertTrue($config->captureJsonRequestShape());
         $this->assertFalse($config->captureJsonResponseShape());
         $this->assertSame(65536, $config->maxBodyBytes());
+        $this->assertSame(array(), $config->endpointPatterns());
     }
 
     public function testNormalizesLegacyCodeIgniter3QueryHistoryCapture()
@@ -61,5 +64,47 @@ class ConfigTest extends TestCase
         $this->assertFalse($config->captureJsonRequestShape());
         $this->assertTrue($config->captureJsonResponseShape());
         $this->assertSame(128, $config->maxBodyBytes());
+    }
+
+    public function testNormalizesFailureModeAndEndpointPatterns()
+    {
+        $config = Config::fromArray(array(
+            'failure_mode' => 'log',
+            'http' => array(
+                'endpoint_patterns' => array(
+                    array('method' => 'get', 'path' => '/api/users/{id}', 'name' => 'users.show'),
+                    array('method' => '', 'path' => '/skip'),
+                    array('path' => '/missing-method'),
+                ),
+            ),
+        ));
+
+        $this->assertSame('log', $config->failureMode());
+        $this->assertSame(array(array(
+            'method' => 'GET',
+            'path' => '/api/users/{id}',
+            'name' => 'users.show',
+        )), $config->endpointPatterns());
+
+        $this->assertSame('throw', Config::fromArray(array('failure_mode' => 'silent'))->failureMode());
+    }
+
+    public function testCanEnableSqlTextCapture()
+    {
+        $config = Config::fromArray(array(
+            'sql' => array(
+                'capture_text' => true,
+            ),
+        ));
+
+        $this->assertTrue($config->captureSqlText());
+        $this->assertFalse(Config::fromArray(array('sql' => array('capture_text' => false)))->captureSqlText());
+    }
+
+    public function testClampsSampleRate()
+    {
+        $this->assertSame(0.0, Config::fromArray(array('sample_rate' => -1))->sampleRate());
+        $this->assertSame(1.0, Config::fromArray(array('sample_rate' => 2))->sampleRate());
+        $this->assertSame(0.25, Config::fromArray(array('sample_rate' => 0.25))->sampleRate());
     }
 }

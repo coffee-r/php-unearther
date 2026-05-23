@@ -20,6 +20,8 @@ class MarkdownRendererTest extends TestCase
 
         $this->assertStringContainsString('# Observed API Behavior Report', $markdown);
         $this->assertStringContainsString('## POST /api/cart/add', $markdown);
+        $this->assertStringContainsString('Error rate:', $markdown);
+        $this->assertStringContainsString('### Errors', $markdown);
         $this->assertStringContainsString('pattern-1', $markdown);
         $this->assertStringContainsString('SELECT M_SHOHIN -> INSERT T_CART', $markdown);
         $this->assertStringContainsString('trace-ok-1', $markdown);

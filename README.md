@@ -70,6 +70,8 @@ composer update coffee-r/php-unearther
 
 php-unearther writes one JSON object per sampled request.
 
+Each observation includes a `schema_version` field. The current schema version is `1`.
+
 The observation record can include:
 
 - HTTP method, path, status, duration, request shape, response shape
@@ -106,6 +108,7 @@ array(
     'enabled' => true,
     'service' => 'legacy-api',
     'framework' => 'codeigniter3',
+    'failure_mode' => 'throw',
     'sample_rate' => 0.01,
     'sink' => array(
         'type' => 'jsonl',
@@ -115,10 +118,17 @@ array(
     'codeigniter3' => array(
         'sql_capture' => 'query_history',
     ),
+    'sql' => array(
+        'capture_text' => false,
+    ),
     'http' => array(
         'capture_json_request_shape' => true,
         'capture_json_response_shape' => false,
         'max_body_bytes' => 65536,
+        'endpoint_patterns' => array(
+            array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'users.show'),
+            array('method' => 'POST', 'path' => '/api/cart/add', 'name' => 'cart.add'),
+        ),
     ),
 )
 ```
@@ -127,7 +137,15 @@ For CodeIgniter3, pass this array through hook params. A future Laravel adapter 
 
 `codeigniter3.sql_capture` can be `query_history`, `observed_db`, or `none`. The older `codeigniter3.capture_query_history` key is still accepted as a compatibility alias.
 
+`sql.capture_text` is off by default. When set to `true`, SQL events include the raw SQL string, normalized SQL, and literal-insensitive fingerprint SQL. This is useful for migration analysis, but it can expose sensitive values when an application builds SQL with literals instead of bind parameters.
+
+`failure_mode` controls what happens when php-unearther itself fails while observing a request. The default is `throw` so installation or configuration problems are visible during rollout. Set it to `log` in production if the application must continue even when observation fails. In `log` mode, CodeIgniter3 uses `log_message('error', ...)` when available and falls back to `error_log()`.
+
+`http.endpoint_patterns` is optional. When a request matches a configured Laravel-style path pattern such as `/api/users/{id}`, reports group it by that canonical endpoint path. php-unearther does not infer path parameters automatically; unconfigured paths are grouped by the raw request path.
+
 ## CodeIgniter3 Usage
+
+The current CodeIgniter3 adapter assumes a classic PHP request lifecycle such as PHP-FPM, CGI, or Apache mod_php. Long-lived worker runtimes such as Swoole, RoadRunner, and ReactPHP are not supported by this prototype because the hook keeps request observation state in static process-local fields.
 
 CodeIgniter3 does not natively assume namespaced Composer classes in hook definitions. The safest setup is to create a small bridge hook inside the application and let that bridge call php-unearther.
 
@@ -209,9 +227,16 @@ An experimental DB wrapper is also available for application bootstrap points yo
 ```php
 use CoffeeR\Unearther\Adapter\CodeIgniter3\Hook;
 use CoffeeR\Unearther\Adapter\CodeIgniter3\ObservedDb;
+use CoffeeR\Unearther\Sql\SqlAnalyzer;
 
 $CI =& get_instance();
 $CI->db = new ObservedDb($CI->db, Hook::collector());
+```
+
+To include SQL text when using `ObservedDb`, pass an analyzer with text capture enabled:
+
+```php
+$CI->db = new ObservedDb($CI->db, Hook::collector(), new SqlAnalyzer(true));
 ```
 
 When using `ObservedDb`, set `sql_capture => observed_db` so the hook does not also record CodeIgniter query history.
@@ -296,7 +321,13 @@ Generate a machine-readable aggregate report:
 vendor/bin/unearth report application/logs/unearther.jsonl --format json
 ```
 
-The report groups traces by endpoint and observed execution pattern. A pattern is currently based on SQL operation/table flow plus Guzzle external HTTP calls.
+The report groups traces by endpoint and observed execution pattern. A pattern is currently based on SQL operation/table/hash flow plus Guzzle external HTTP calls. Pattern granularity is fixed in this prototype and is not configurable.
+
+If `http.endpoint_patterns` is configured during capture, reports prefer the recorded canonical endpoint path. Reports also include endpoint-level error counts and grouped error summaries from trace `errors`.
+
+Aggregate reports and Markdown reports do not render raw SQL text. They include statement hashes and fingerprint SQL examples when those fields were captured.
+
+The CLI currently supports report generation only. It does not include a `compare` command or `--from` / `--to` date filtering.
 
 Example pattern:
 
@@ -317,10 +348,12 @@ The test suite is fixture-driven and focuses on deterministic behavior:
 - shape extraction
 - JSON request and response shape extraction
 - SQL operation/table extraction
+- endpoint pattern normalization
 - CodeIgniter3 hook lifecycle behavior
 - JSONL writing
 - CLI warning behavior
 - endpoint aggregation
+- error aggregation
 - execution pattern grouping
 - Markdown rendering
 
