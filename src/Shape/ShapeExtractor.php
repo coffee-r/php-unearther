@@ -102,7 +102,14 @@ class ShapeExtractor
     private function mergeShape($left, $right)
     {
         if (!is_array($left) || !is_array($right)) {
-            return $left === $right ? $left : 'mixed';
+            if ($left === $right) {
+                return $left;
+            }
+            if (!is_array($left) && !is_array($right)) {
+                return $this->unionType((string) $left, (string) $right);
+            }
+
+            return 'mixed';
         }
 
         foreach ($right as $key => $value) {
@@ -114,5 +121,13 @@ class ShapeExtractor
         }
 
         return $left;
+    }
+
+    private function unionType($a, $b)
+    {
+        $parts = array_unique(array_merge(explode('|', $a), explode('|', $b)));
+        sort($parts);
+
+        return implode('|', $parts);
     }
 }

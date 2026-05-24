@@ -81,7 +81,7 @@ class Config
             ),
             'http' => array(
                 'capture_json_request_shape' => true,
-                'capture_json_response_shape' => false,
+                'capture_json_response_shape' => true,
                 'max_body_bytes' => 65536,
                 'endpoint_patterns' => array(),
             ),

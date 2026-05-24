@@ -308,11 +308,23 @@ class Aggregator
             } elseif (is_array($left[$key]) && is_array($value)) {
                 $left[$key] = $this->mergeShape($left[$key], $value);
             } elseif ($left[$key] !== $value) {
-                $left[$key] = 'mixed';
+                if (!is_array($left[$key]) && !is_array($value)) {
+                    $left[$key] = $this->unionType((string) $left[$key], (string) $value);
+                } else {
+                    $left[$key] = 'mixed';
+                }
             }
         }
 
         return $left;
+    }
+
+    private function unionType($a, $b)
+    {
+        $parts = array_unique(array_merge(explode('|', $a), explode('|', $b)));
+        sort($parts);
+
+        return implode('|', $parts);
     }
 
     private function normalizeTableCatalog(array $catalog)
