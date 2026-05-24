@@ -284,10 +284,7 @@ class Hook
 
             $queries = array_slice($db->queries, (int) $entry['start_index']);
             foreach ($queries as $sql) {
-                self::$collector->addSql($analyzer->analyze($sql, array(), array(
-                    'source' => 'codeigniter3_query_history',
-                    'db' => $entry['name'],
-                )));
+                self::$collector->addSql($analyzer->analyze($sql, array(), 'codeigniter3_query_history'));
             }
         }
     }
@@ -372,6 +369,7 @@ class Hook
 
         $class = method_exists($ci->router, 'fetch_class') ? $ci->router->fetch_class() : null;
         $method = method_exists($ci->router, 'fetch_method') ? $ci->router->fetch_method() : null;
+        $directory = method_exists($ci->router, 'fetch_directory') ? $ci->router->fetch_directory() : '';
         $info = array();
         if ($class !== null && $class !== '') {
             $info['controller'] = $class;
@@ -382,8 +380,19 @@ class Hook
         if (isset($info['controller']) && isset($info['action'])) {
             $info['route'] = $info['controller'] . '/' . $info['action'];
         }
+        if (isset($info['controller'])) {
+            $info['controller_path'] = $this->controllerPath($directory, $info['controller']);
+        }
 
         return $info;
+    }
+
+    private function controllerPath($directory, $controller)
+    {
+        $directory = trim(str_replace('\\', '/', (string) $directory), '/');
+        $controllerFile = ucfirst((string) $controller) . '.php';
+
+        return 'application/controllers/' . ($directory === '' ? '' : $directory . '/') . $controllerFile;
     }
 
     private function pathSegments($path)

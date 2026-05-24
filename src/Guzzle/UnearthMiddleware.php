@@ -10,24 +10,22 @@ class UnearthMiddleware
     {
         return function (callable $handler) use ($collector) {
             return function ($request, array $options) use ($handler, $collector) {
-                $caller = self::caller();
-
                 try {
                     $promise = $handler($request, $options);
                 } catch (\Throwable $exception) {
-                    self::record($collector, $request, null, $exception, $caller);
+                    self::record($collector, $request, null, $exception);
                     throw $exception;
                 }
 
                 if (is_object($promise) && method_exists($promise, 'then')) {
                     return $promise->then(
-                        function ($response) use ($collector, $request, $caller) {
-                            self::record($collector, $request, $response, null, $caller);
+                        function ($response) use ($collector, $request) {
+                            self::record($collector, $request, $response, null);
                             return $response;
                         },
-                        function ($reason) use ($collector, $request, $caller) {
+                        function ($reason) use ($collector, $request) {
                             $exception = $reason instanceof \Throwable ? $reason : null;
-                            self::record($collector, $request, null, $exception, $caller);
+                            self::record($collector, $request, null, $exception);
                             if ($reason instanceof \Throwable) {
                                 throw $reason;
                             }
@@ -37,14 +35,14 @@ class UnearthMiddleware
                     );
                 }
 
-                self::record($collector, $request, $promise, null, $caller);
+                self::record($collector, $request, $promise, null);
 
                 return $promise;
             };
         };
     }
 
-    private static function record(Collector $collector, $request, $response, $exception, array $caller)
+    private static function record(Collector $collector, $request, $response, $exception)
     {
         $uri = method_exists($request, 'getUri') ? $request->getUri() : null;
         $method = method_exists($request, 'getMethod') ? $request->getMethod() : 'GET';
@@ -58,7 +56,6 @@ class UnearthMiddleware
             'host' => $host,
             'path' => $path,
             'status' => $status,
-            'caller' => $caller,
         );
 
         if ($exception) {
@@ -66,25 +63,5 @@ class UnearthMiddleware
         }
 
         $collector->addExternalHttp($event);
-    }
-
-    private static function caller()
-    {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 8);
-        foreach ($trace as $frame) {
-            if (!isset($frame['file'])) {
-                continue;
-            }
-            if (strpos($frame['file'], 'UnearthMiddleware.php') !== false) {
-                continue;
-            }
-
-            return array(
-                'file' => $frame['file'],
-                'line' => isset($frame['line']) ? $frame['line'] : null,
-            );
-        }
-
-        return array();
     }
 }

@@ -54,7 +54,7 @@ class Config
         return array(
             'enabled' => true,
             'service' => 'legacy-api',
-            'framework' => 'php',
+            'framework' => 'codeigniter3',
             'environment' => 'production',
             'failure_mode' => FailureHandler::MODE_THROW,
             'sample_rate' => 0.1,

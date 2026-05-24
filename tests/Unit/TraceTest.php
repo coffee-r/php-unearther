@@ -20,7 +20,6 @@ class TraceTest extends TestCase
 
         $trace->setHttp(array('method' => 'POST', 'path' => '/api/orders'));
         $trace->setHttp(array('status' => 201));
-        $trace->addCall(array('type' => 'controller', 'class' => 'Orders', 'function' => 'create'));
         $trace->addSql(array('operation' => 'SELECT', 'tables' => array('ORDERS')));
         $trace->addSql(array('operation' => 'INSERT', 'tables' => array('ORDER_LOGS')));
         $trace->addExternalHttp(array('method' => 'POST', 'host' => 'payment.example.com', 'path' => '/authorize'));
@@ -38,8 +37,7 @@ class TraceTest extends TestCase
             'path' => '/api/orders',
             'status' => 201,
         ), $serialized['http']);
-        $this->assertSame(1, $serialized['calls'][0]['seq']);
-        $this->assertSame('controller', $serialized['calls'][0]['type']);
+        $this->assertArrayNotHasKey('calls', $serialized);
         $this->assertSame(1, $serialized['sql'][0]['seq']);
         $this->assertSame(2, $serialized['sql'][1]['seq']);
         $this->assertSame('INSERT', $serialized['sql'][1]['operation']);

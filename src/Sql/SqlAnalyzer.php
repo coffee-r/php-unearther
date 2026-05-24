@@ -17,7 +17,7 @@ class SqlAnalyzer
         $this->captureBindRaw = (bool) $captureBindRaw;
     }
 
-    public function analyze($sql, array $binds = array(), array $caller = array())
+    public function analyze($sql, array $binds = array(), $source = null)
     {
         $rawSql = (string) $sql;
         $statementNormalized = $this->normalizeWithPlaceholder($rawSql);
@@ -34,8 +34,7 @@ class SqlAnalyzer
             'bind_shape' => $this->bindShape($binds),
             'bind_tokens' => $this->redactor ? $this->redactor->tokens($binds) : null,
             'bind_raw' => $this->captureBindRaw ? $binds : null,
-            'analysis' => $this->analysis($operation, $tables, $caller),
-            'caller' => $caller,
+            'analysis' => $this->analysis($operation, $tables, $source),
         );
     }
 
@@ -140,11 +139,11 @@ class SqlAnalyzer
         return $shape;
     }
 
-    private function analysis($operation, array $tables, array $caller)
+    private function analysis($operation, array $tables, $source)
     {
         $warnings = array();
-        if (isset($caller['source']) && $caller['source'] === 'codeigniter3_query_history') {
-            $warnings[] = 'query_history_capture_has_no_precise_caller_or_bind_values';
+        if ($source === 'codeigniter3_query_history') {
+            $warnings[] = 'query_history_capture_has_no_bind_values';
         }
         if (count($tables) === 0) {
             $warnings[] = 'tables_not_detected';

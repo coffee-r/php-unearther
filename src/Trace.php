@@ -15,7 +15,6 @@ class Trace
     private $startedAt;
     private $redaction;
     private $http = array();
-    private $calls = array();
     private $sql = array();
     private $externalHttp = array();
     private $errors = array();
@@ -61,12 +60,6 @@ class Trace
         $this->http = array_merge($this->http, $http);
     }
 
-    public function addCall(array $call)
-    {
-        $call['seq'] = count($this->calls) + 1;
-        $this->calls[] = $call;
-    }
-
     public function addSql(array $sql)
     {
         $sql['seq'] = count($this->sql) + 1;
@@ -107,7 +100,6 @@ class Trace
             'started_at' => $this->startedAt,
             'redaction' => $this->redaction,
             'http' => $this->http,
-            'calls' => $this->calls,
             'sql' => $this->sql,
             'external_http' => $this->externalHttp,
             'errors' => $this->errors,

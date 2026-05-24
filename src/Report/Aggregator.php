@@ -5,11 +5,13 @@ namespace CoffeeR\Unearth\Report;
 class Aggregator
 {
     private $valueMode;
+    private $tableCatalog;
 
-    public function __construct($valueMode = 'normalized')
+    public function __construct($valueMode = 'normalized', array $tableCatalog = array())
     {
         $valueMode = strtolower((string) $valueMode);
         $this->valueMode = in_array($valueMode, array('normalized', 'tokenized', 'raw'), true) ? $valueMode : 'normalized';
+        $this->tableCatalog = $this->normalizeTableCatalog($tableCatalog);
     }
 
     public function aggregate(array $traces)
@@ -46,13 +48,17 @@ class Aggregator
             }
 
             if (isset($http['route'])) {
+                $entrypoint['route'] = $entrypoint['route'] === null ? $http['route'] : $entrypoint['route'];
                 $entrypoint['routes'][$http['route']] = true;
             }
             if (isset($http['controller'])) {
-                $entrypoint['controllers'][$http['controller']] = true;
+                $entrypoint['controller'] = $entrypoint['controller'] === null ? $http['controller'] : $entrypoint['controller'];
             }
-            if (isset($http['endpoint_name'])) {
-                $entrypoint['endpoint_names'][$http['endpoint_name']] = true;
+            if (isset($http['action'])) {
+                $entrypoint['action'] = $entrypoint['action'] === null ? $http['action'] : $entrypoint['action'];
+            }
+            if (isset($http['controller_path'])) {
+                $entrypoint['controller_path'] = $entrypoint['controller_path'] === null ? $http['controller_path'] : $entrypoint['controller_path'];
             }
 
             $entrypoint['request_shape'] = $this->mergeShape($entrypoint['request_shape'], isset($http['request_shape']) ? $http['request_shape'] : array());
@@ -105,7 +111,6 @@ class Aggregator
                         'statement_hash' => $step['statement_hash'],
                         'statement_normalized' => $step['statement_normalized'],
                         'count' => 0,
-                        'example_source' => $this->sourceLabel($step['caller']),
                     );
                 }
                 $pattern['sql_flow'][$index]['count']++;
@@ -128,8 +133,6 @@ class Aggregator
             $entrypoint['error_rate'] = $entrypoint['observed_count'] > 0 ? round($entrypoint['error_count'] / $entrypoint['observed_count'], 4) : 0.0;
 
             $entrypoint['routes'] = array_keys($entrypoint['routes']);
-            $entrypoint['controllers'] = array_keys($entrypoint['controllers']);
-            $entrypoint['endpoint_names'] = array_keys($entrypoint['endpoint_names']);
             $entrypoint['errors'] = array_values($entrypoint['errors']);
 
             foreach ($entrypoint['patterns'] as &$pattern) {
@@ -141,6 +144,7 @@ class Aggregator
             unset($pattern);
 
             $entrypoint['patterns'] = array_values($entrypoint['patterns']);
+            $entrypoint['table_catalog'] = $this->entrypointTableCatalog($entrypoint['patterns']);
         }
         unset($entrypoint);
 
@@ -167,16 +171,19 @@ class Aggregator
             'migration_unit_assumption' => 'not_assumed',
             'method' => $method,
             'path' => $path,
+            'controller' => null,
+            'action' => null,
+            'route' => null,
+            'controller_path' => null,
             'observed_count' => 0,
             'routes' => array(),
-            'controllers' => array(),
-            'endpoint_names' => array(),
             'status_codes' => array(),
             'error_count' => 0,
             'error_rate' => 0.0,
             'errors' => array(),
             'request_shape' => array(),
             'response_shape' => array(),
+            'table_catalog' => array(),
             'patterns' => array(),
         );
     }
@@ -217,7 +224,6 @@ class Aggregator
                 'statement_normalized' => isset($item['statement_normalized']) ? (string) $item['statement_normalized'] : '',
                 'statement_tokenized' => isset($item['statement_tokenized']) ? $item['statement_tokenized'] : null,
                 'statement_text' => isset($item['statement_text']) ? $item['statement_text'] : null,
-                'caller' => isset($item['caller']) && is_array($item['caller']) ? $item['caller'] : array(),
             );
         }
 
@@ -271,20 +277,6 @@ class Aggregator
         );
     }
 
-    private function sourceLabel(array $caller)
-    {
-        if (!isset($caller['file'])) {
-            return '';
-        }
-
-        $label = basename($caller['file']);
-        if (isset($caller['line'])) {
-            $label .= ':' . $caller['line'];
-        }
-
-        return $label;
-    }
-
     private function errorEvents(array $trace)
     {
         return isset($trace['errors']) && is_array($trace['errors']) ? $trace['errors'] : array();
@@ -321,5 +313,33 @@ class Aggregator
         }
 
         return $left;
+    }
+
+    private function normalizeTableCatalog(array $catalog)
+    {
+        $normalized = array();
+        foreach ($catalog as $table => $description) {
+            $table = strtoupper((string) $table);
+            $normalized[$table] = (string) $description;
+        }
+
+        return $normalized;
+    }
+
+    private function entrypointTableCatalog(array $patterns)
+    {
+        $tables = array();
+        foreach ($patterns as $pattern) {
+            foreach ($pattern['tables'] as $table) {
+                if (!isset($tables[$table])) {
+                    $tables[$table] = array(
+                        'table' => $table,
+                        'description' => isset($this->tableCatalog[$table]) ? $this->tableCatalog[$table] : '',
+                    );
+                }
+            }
+        }
+
+        return array_values($tables);
     }
 }

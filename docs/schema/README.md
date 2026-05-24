@@ -2,9 +2,8 @@
 
 `observation-v1.schema.json` describes one JSON object per JSONL line.
 
-The schema is intentionally language-neutral: CodeIgniter3, Laravel, or another
-runtime can emit the same top-level fields and compare behavior outside this
-package.
+The schema is designed for the CodeIgniter3 adapter. It is a contract for
+observations emitted by this package, not a language-neutral adapter contract.
 
 ## Value Classes
 
@@ -21,8 +20,8 @@ SQL analysis is regex-based in v1. `statement_normalized` and
 `unknown` for complex CTEs, subqueries, vendor syntax, or dynamic SQL.
 
 CodeIgniter3 sampled query-history capture records final SQL strings from the
-DB object. It has broad coverage, but does not provide precise caller or bind
-metadata; those limitations are surfaced in `sql[].analysis.warnings`.
+DB object. It has broad coverage, but does not provide bind metadata; that
+limitation is surfaced in `sql[].analysis.warnings`.
 
 ## Production Validation
 

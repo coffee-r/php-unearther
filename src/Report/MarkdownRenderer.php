@@ -24,6 +24,10 @@ class MarkdownRenderer
             $lines[] = '- Entrypoint key: `' . $this->backtickValue(isset($entrypoint['entrypoint_key']) ? $entrypoint['entrypoint_key'] : $entrypoint['method'] . ' ' . $entrypoint['path']) . '`';
             $lines[] = '- Entrypoint type: `' . $this->backtickValue(isset($entrypoint['entrypoint_type']) ? $entrypoint['entrypoint_type'] : 'http') . '`';
             $lines[] = '- Migration unit assumption: `' . $this->backtickValue(isset($entrypoint['migration_unit_assumption']) ? $entrypoint['migration_unit_assumption'] : 'not_assumed') . '`';
+            $lines[] = '- Controller: `' . $this->backtickValue(isset($entrypoint['controller']) && $entrypoint['controller'] !== null ? $entrypoint['controller'] : '-') . '`';
+            $lines[] = '- Action: `' . $this->backtickValue(isset($entrypoint['action']) && $entrypoint['action'] !== null ? $entrypoint['action'] : '-') . '`';
+            $lines[] = '- Route: `' . $this->backtickValue(isset($entrypoint['route']) && $entrypoint['route'] !== null ? $entrypoint['route'] : '-') . '`';
+            $lines[] = '- Controller path: `' . $this->backtickValue(isset($entrypoint['controller_path']) && $entrypoint['controller_path'] !== null ? $entrypoint['controller_path'] : '-') . '`';
             $lines[] = '- Observed requests: `' . $entrypoint['observed_count'] . '`';
             $lines[] = '- Error rate: `' . $this->percent(isset($entrypoint['error_rate']) ? $entrypoint['error_rate'] : 0.0) . '`';
             $lines[] = '';
@@ -55,6 +59,10 @@ class MarkdownRenderer
             $lines[] = '';
             $lines = array_merge($lines, $this->shapeTable($entrypoint['response_shape']));
             $lines[] = '';
+            $lines[] = '### Tables';
+            $lines[] = '';
+            $lines = array_merge($lines, $this->tableCatalogTable(isset($entrypoint['table_catalog']) ? $entrypoint['table_catalog'] : array()));
+            $lines[] = '';
             $lines[] = '### Observed Execution Patterns';
             $lines[] = '';
             $lines[] = '| Pattern | Count | Status | SQL Flow | Tables | External Calls |';
@@ -72,13 +80,13 @@ class MarkdownRenderer
                 $lines[] = '';
                 $lines[] = '#### SQL Statements';
                 $lines[] = '';
-                $lines[] = '| Step | Operation | Tables | Statement Hash | Statement (normalized) | Count | Example Source |';
-                $lines[] = '|---:|---|---|---|---|---:|---|';
+                $lines[] = '| Step | Operation | Tables | Statement Hash | Statement (normalized) | Count |';
+                $lines[] = '|---:|---|---|---|---|---:|';
                 foreach ($pattern['sql_flow'] as $step) {
-                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell(isset($step['statement_hash']) ? $step['statement_hash'] : '') . ' | ' . $this->tableCell(isset($step['statement_normalized']) ? $step['statement_normalized'] : '') . ' | ' . $this->tableCell($step['count']) . ' | ' . $this->tableCell($step['example_source']) . ' |';
+                    $lines[] = '| ' . $this->tableCell($step['step']) . ' | ' . $this->tableCell($step['operation']) . ' | ' . $this->tableCell(implode(', ', $step['tables'])) . ' | ' . $this->tableCell(isset($step['statement_hash']) ? $step['statement_hash'] : '') . ' | ' . $this->tableCell(isset($step['statement_normalized']) ? $step['statement_normalized'] : '') . ' | ' . $this->tableCell($step['count']) . ' |';
                 }
                 if (count($pattern['sql_flow']) === 0) {
-                    $lines[] = '| - | - | - | - | - | 0 | - |';
+                    $lines[] = '| - | - | - | - | - | 0 |';
                 }
                 $lines[] = '';
                 $lines = array_merge($lines, $this->representativeSection($pattern));
@@ -227,6 +235,23 @@ class MarkdownRenderer
         }
 
         return array_keys($shape) === range(0, count($shape) - 1);
+    }
+
+    private function tableCatalogTable(array $catalog)
+    {
+        $lines = array();
+        $lines[] = '| Table | Description |';
+        $lines[] = '|---|---|';
+        foreach ($catalog as $item) {
+            $table = isset($item['table']) ? $item['table'] : '';
+            $description = isset($item['description']) ? $item['description'] : '';
+            $lines[] = '| ' . $this->tableCell($table) . ' | ' . $this->tableCell($description) . ' |';
+        }
+        if (count($catalog) === 0) {
+            $lines[] = '| - | - |';
+        }
+
+        return $lines;
     }
 
     private function sqlFlowLabel(array $flow)

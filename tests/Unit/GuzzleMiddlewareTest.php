@@ -30,7 +30,7 @@ class GuzzleMiddlewareTest extends TestCase
         $this->assertSame('api.example.com', $event['host']);
         $this->assertSame('/sync', $event['path']);
         $this->assertSame(201, $event['status']);
-        $this->assertSame('GuzzleMiddlewareTest.php', basename($event['caller']['file']));
+        $this->assertArrayNotHasKey('caller', $event);
     }
 
     public function testRecordsPromiseResponse()

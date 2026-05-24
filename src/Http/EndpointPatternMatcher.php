@@ -23,12 +23,8 @@ class EndpointPatternMatcher
             $match = array(
                 'path_pattern' => $pattern['path'],
             );
-            if (isset($pattern['name'])) {
-                $match['endpoint_name'] = $pattern['name'];
+                return $match;
             }
-
-            return $match;
-        }
 
         return null;
     }

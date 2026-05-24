@@ -31,6 +31,9 @@
         "path_tokenized": { "type": ["string", "null"] },
         "path_raw": { "type": ["string", "null"] },
         "route": { "type": "string" },
+        "controller": { "type": "string" },
+        "action": { "type": "string" },
+        "controller_path": { "type": "string" },
         "status": { "type": "integer" },
         "response_kind": { "enum": ["json", "html", "other"] },
         "content_type": { "type": ["string", "null"] },
@@ -46,12 +49,11 @@
       },
       "additionalProperties": true
     },
-    "calls": { "type": "array" },
     "sql": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["seq", "operation", "tables", "statement_normalized", "statement_tokenized", "statement_text", "statement_hash", "bind_shape", "bind_tokens", "bind_raw", "analysis", "caller"],
+        "required": ["seq", "operation", "tables", "statement_normalized", "statement_tokenized", "statement_text", "statement_hash", "bind_shape", "bind_tokens", "bind_raw", "analysis"],
         "properties": {
           "seq": { "type": "integer" },
           "operation": { "type": "string" },
@@ -66,8 +68,7 @@
           "analysis": {
             "type": "object",
             "required": ["analyzer", "operation_confidence", "tables_confidence", "warnings"]
-          },
-          "caller": { "type": "object" }
+          }
         }
       }
     },

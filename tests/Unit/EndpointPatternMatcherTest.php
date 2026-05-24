@@ -7,13 +7,12 @@ use PHPUnit\Framework\TestCase;
 
 class EndpointPatternMatcherTest extends TestCase
 {
-    public function testMatchesLaravelStyleSegmentPlaceholders()
+    public function testMatchesSegmentPlaceholders()
     {
         $matcher = new EndpointPatternMatcher();
 
         $this->assertSame(array(
             'path_pattern' => '/api/users/{id}',
-            'endpoint_name' => 'users.show',
         ), $matcher->match('GET', '/api/users/123?debug=1', array(
             array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'users.show'),
         )));
@@ -35,7 +34,6 @@ class EndpointPatternMatcherTest extends TestCase
 
         $this->assertSame(array(
             'path_pattern' => '/api/users/{id}',
-            'endpoint_name' => 'first',
         ), $matcher->match('GET', '/api/users/123', array(
             array('method' => 'GET', 'path' => '/api/users/{id}', 'name' => 'first'),
             array('method' => 'GET', 'path' => '/api/users/{user_id}', 'name' => 'second'),

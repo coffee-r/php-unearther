@@ -33,6 +33,9 @@ $orderRejected    = findTrace($traces, 'POST', '/api/orders', 422);
 
 assertSame('codeigniter3', $orderCreated['framework'], 'framework should be codeigniter3');
 assertSame(1.0, (float) $orderCreated['sample_rate'], 'sample_rate should be fixed to 1.0');
+assertSame('products/index', $productsIndex['http']['route'], 'route should include CI3 controller/action');
+assertSame('application/controllers/api/Products.php', $productsIndex['http']['controller_path'], 'controller_path should point to CI3 controller');
+assertSame(array('category_id' => 'string'), $productsIndex['http']['query_shape'], 'query params should be captured as shape');
 
 assertSqlOperation($registerCreated,  'INSERT', 'USERS');
 assertSqlOperation($registerDuplicate, 'SELECT', 'USERS');
@@ -75,6 +78,7 @@ foreach ($exportLines as $line) {
     foreach ($exported['sql'] as $sql) {
         assertTrue(!isset($sql['statement_text']), 'export should omit statement_text');
         assertTrue(!isset($sql['bind_raw']), 'export should omit bind_raw');
+        assertTrue(!isset($sql['caller']), 'export should omit SQL caller');
     }
 }
 

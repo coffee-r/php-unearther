@@ -32,7 +32,7 @@ array_shift($argv);
 
 $command = array_shift($argv);
 if ($command !== 'report' && $command !== 'export') {
-    fwrite(STDERR, "Usage: unearth report <jsonl...> --format md|json [--value-mode normalized|tokenized|raw]\n");
+    fwrite(STDERR, "Usage: unearth report <jsonl...> --format md|markdown|json [--value-mode normalized|tokenized|raw] [--table-catalog catalog.json]\n");
     fwrite(STDERR, "       unearth export <jsonl...> --profile ai --format jsonl|json\n");
     exit(1);
 }
@@ -40,6 +40,7 @@ if ($command !== 'report' && $command !== 'export') {
 $format = 'md';
 $profile = 'ai';
 $valueMode = 'normalized';
+$tableCatalogPath = null;
 $paths = array();
 for ($i = 0; $i < count($argv); $i++) {
     if ($argv[$i] === '--format' && isset($argv[$i + 1])) {
@@ -54,6 +55,11 @@ for ($i = 0; $i < count($argv); $i++) {
     }
     if ($argv[$i] === '--value-mode' && isset($argv[$i + 1])) {
         $valueMode = $argv[$i + 1];
+        $i++;
+        continue;
+    }
+    if ($argv[$i] === '--table-catalog' && isset($argv[$i + 1])) {
+        $tableCatalogPath = $argv[$i + 1];
         $i++;
         continue;
     }
@@ -95,7 +101,21 @@ if ($command === 'export') {
     exit(1);
 }
 
-$aggregator = new Aggregator($valueMode);
+$tableCatalog = array();
+if ($tableCatalogPath !== null) {
+    if (!is_file($tableCatalogPath)) {
+        fwrite(STDERR, "Table catalog file not found: " . $tableCatalogPath . "\n");
+        exit(1);
+    }
+    $decoded = json_decode(file_get_contents($tableCatalogPath), true);
+    if (!is_array($decoded) || (count($decoded) > 0 && array_keys($decoded) === range(0, count($decoded) - 1))) {
+        fwrite(STDERR, "Invalid table catalog JSON: " . $tableCatalogPath . "\n");
+        exit(1);
+    }
+    $tableCatalog = $decoded;
+}
+
+$aggregator = new Aggregator($valueMode, $tableCatalog);
 $report = $aggregator->aggregate($traces);
 
 if ($format === 'json') {

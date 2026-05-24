@@ -34,8 +34,7 @@ class ObservedDb
         $bindArray = is_array($binds) ? $binds : array();
         $this->collector->addSql($this->analyzer->analyze(
             $sql,
-            $bindArray,
-            $this->caller()
+            $bindArray
         ));
 
         return $result;
@@ -46,25 +45,4 @@ class ObservedDb
         return call_user_func_array(array($this->db, $name), $arguments);
     }
 
-    private function caller()
-    {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 8);
-        foreach ($trace as $frame) {
-            if (!isset($frame['file'])) {
-                continue;
-            }
-            if (strpos($frame['file'], 'ObservedDb.php') !== false) {
-                continue;
-            }
-
-            return array(
-                'file' => $frame['file'],
-                'line' => isset($frame['line']) ? $frame['line'] : null,
-                'class' => isset($frame['class']) ? $frame['class'] : null,
-                'function' => isset($frame['function']) ? $frame['function'] : null,
-            );
-        }
-
-        return array();
-    }
 }

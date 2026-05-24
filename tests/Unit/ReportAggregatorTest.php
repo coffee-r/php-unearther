@@ -25,11 +25,18 @@ class ReportAggregatorTest extends TestCase
         $this->assertSame('not_assumed', $entrypoint['migration_unit_assumption']);
         $this->assertSame('POST', $entrypoint['method']);
         $this->assertSame('/api/cart/add', $entrypoint['path']);
-        $this->assertSame(3, $entrypoint['observed_count']);
-        $this->assertCount(2, $entrypoint['patterns']);
+        $this->assertSame('cart', $entrypoint['controller']);
+        $this->assertSame('add', $entrypoint['action']);
+        $this->assertSame('cart/add', $entrypoint['route']);
+        $this->assertSame('application/controllers/api/Cart.php', $entrypoint['controller_path']);
+        $this->assertArrayNotHasKey('controllers', $entrypoint);
+        $this->assertArrayNotHasKey('endpoint_names', $entrypoint);
+        $this->assertSame(4, $entrypoint['observed_count']);
+        $this->assertCount(3, $entrypoint['patterns']);
         $this->assertSame('pattern-1', $entrypoint['patterns'][0]['behavior_pattern_id']);
         $this->assertSame(2, $entrypoint['patterns'][0]['count']);
         $this->assertSame(1, $entrypoint['patterns'][1]['count']);
+        $this->assertSame(1, $entrypoint['patterns'][2]['count']);
         $this->assertArrayNotHasKey('avg_duration_ms', $entrypoint);
         $this->assertArrayNotHasKey('p95_duration_ms', $entrypoint);
         $this->assertArrayNotHasKey('max_duration_ms', $entrypoint);
@@ -56,6 +63,44 @@ class ReportAggregatorTest extends TestCase
         $this->assertCount(2, $rep['sql']);
         $this->assertSame('SELECT * FROM M_SHOHIN WHERE item_code = {parameter}', $rep['sql'][0]['statement_normalized']);
         $this->assertSame(array(), $rep['external_http']);
+    }
+
+    public function testCartAddFixtureIncludesSubstitutionPattern()
+    {
+        $reader = new JsonlReader();
+        $aggregator = new Aggregator();
+
+        $report = $aggregator->aggregate($reader->read(array(__DIR__ . '/../Fixtures/jsonl/cart_add.jsonl')));
+        $pattern = $report['observed_entrypoints'][0]['patterns'][2];
+        $rep = $pattern['representative_observed_flow'];
+
+        $this->assertSame('pattern-3', $pattern['behavior_pattern_id']);
+        $this->assertSame('trace-substitute-1', $rep['trace_id']);
+        $this->assertSame(array('M_SHOHIN', 'T_FURIKAE_SHOHIN', 'T_CART'), $pattern['tables']);
+        $this->assertSame(array('SELECT', 'SELECT', 'SELECT', 'DELETE', 'INSERT'), array_column($pattern['sql_flow'], 'operation'));
+        $this->assertSame('T_FURIKAE_SHOHIN', $pattern['sql_flow'][1]['tables'][0]);
+        $this->assertSame('DELETE FROM T_CART WHERE customer_id = {parameter} AND item_code = {parameter}', $pattern['sql_flow'][3]['statement_normalized']);
+        $this->assertSame('INSERT INTO T_CART (customer_id, item_code, quantity, substituted_from_item_code) VALUES ({parameter}, {parameter}, {parameter}, {parameter})', $pattern['sql_flow'][4]['statement_normalized']);
+        $this->assertArrayNotHasKey('example_source', $pattern['sql_flow'][4]);
+        $this->assertSame('SELECT * FROM T_FURIKAE_SHOHIN WHERE original_item_code = {parameter} AND active_flag = {parameter}', $rep['sql'][1]['statement_normalized']);
+    }
+
+    public function testTableCatalogDescriptionsAreAttachedToObservedTables()
+    {
+        $reader = new JsonlReader();
+        $aggregator = new Aggregator('normalized', array(
+            'M_SHOHIN' => '商品マスタ。',
+            'T_CART' => 'カート明細。',
+        ));
+
+        $report = $aggregator->aggregate($reader->read(array(__DIR__ . '/../Fixtures/jsonl/cart_add.jsonl')));
+        $catalog = $report['observed_entrypoints'][0]['table_catalog'];
+
+        $this->assertSame(array(
+            array('table' => 'M_SHOHIN', 'description' => '商品マスタ。'),
+            array('table' => 'T_CART', 'description' => 'カート明細。'),
+            array('table' => 'T_FURIKAE_SHOHIN', 'description' => ''),
+        ), $catalog);
     }
 
     public function testExternalHttpParticipatesInPattern()

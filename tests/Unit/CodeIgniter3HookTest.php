@@ -100,9 +100,9 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $this->assertSame('SELECT', $trace['sql'][0]['operation']);
             $this->assertSame(array('USERS'), $trace['sql'][0]['tables']);
             $this->assertArrayNotHasKey('duration_ms', $trace['sql'][0]);
+            $this->assertArrayNotHasKey('caller', $trace['sql'][0]);
             $this->assertNull($trace['sql'][0]['statement_text']);
-            $this->assertSame('codeigniter3_query_history', $trace['sql'][0]['caller']['source']);
-            $this->assertContains('query_history_capture_has_no_precise_caller_or_bind_values', $trace['sql'][0]['analysis']['warnings']);
+            $this->assertContains('query_history_capture_has_no_bind_values', $trace['sql'][0]['analysis']['warnings']);
             $this->assertSame('select * from users', $trace['sql'][0]['statement_normalized']);
             $this->assertFalse($GLOBALS['__php_unearth_ci_instance']->db->save_queries);
         }
@@ -170,8 +170,39 @@ namespace CoffeeR\Unearth\Tests\Unit {
             (new Hook())->finish();
 
             $trace = $this->readTrace($path);
-            $this->assertSame('reporting', $trace['sql'][0]['caller']['db']);
+            $this->assertArrayNotHasKey('caller', $trace['sql'][0]);
             $this->assertFalse($db->save_queries);
+        }
+
+        public function testRouteInfoCapturesControllerActionAndControllerPath()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null, new CodeIgniter3RouterStub('cart', 'add', 'api/'));
+
+            (new Hook())->start($this->config($path));
+            (new Hook())->finish();
+
+            $http = $this->readTrace($path)['http'];
+            $this->assertSame('cart', $http['controller']);
+            $this->assertSame('add', $http['action']);
+            $this->assertSame('cart/add', $http['route']);
+            $this->assertSame('application/controllers/api/Cart.php', $http['controller_path']);
+        }
+
+        public function testQueryParametersAreCapturedAsShapeAndTokens()
+        {
+            $path = $this->tempPath();
+            $_GET = array('category_id' => '1', 'debug' => 'true');
+
+            (new Hook())->start($this->config($path, array(
+                'redaction' => array('secret' => 'query-secret'),
+            )));
+            (new Hook())->finish();
+
+            $http = $this->readTrace($path)['http'];
+            $this->assertSame(array('category_id' => 'string', 'debug' => 'string'), $http['query_shape']);
+            $this->assertMatchesRegularExpression('/^\{p-[a-f0-9]{12}\}$/', $http['query_tokens']['category_id']);
+            $this->assertNull($http['query_raw']);
         }
 
         public function testRecordViewCapturesShapeWithoutRawValues()
@@ -306,7 +337,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $trace = $this->readTrace($path);
             $this->assertSame('/api/users/123', $trace['http']['path']);
             $this->assertSame('/api/users/{id}', $trace['http']['path_pattern']);
-            $this->assertSame('users.show', $trace['http']['endpoint_name']);
+            $this->assertArrayNotHasKey('endpoint_name', $trace['http']);
         }
 
         public function testEndpointPatternOverridesReplacePreviousLists()
@@ -391,12 +422,15 @@ namespace CoffeeR\Unearth\Tests\Unit {
             return $config;
         }
 
-        private function ci(array $queries, array $queryTimes, $output)
+        private function ci(array $queries, array $queryTimes, $output, $router = null)
         {
             $ci = new \stdClass();
             $ci->db = new \stdClass();
             $ci->db->queries = $queries;
             $ci->db->query_times = $queryTimes;
+            if ($router) {
+                $ci->router = $router;
+            }
             if ($output) {
                 $ci->output = $output;
             }
@@ -452,6 +486,35 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function get_output()
         {
             throw new \RuntimeException('output unavailable');
+        }
+    }
+
+    class CodeIgniter3RouterStub
+    {
+        private $class;
+        private $method;
+        private $directory;
+
+        public function __construct($class, $method, $directory = '')
+        {
+            $this->class = $class;
+            $this->method = $method;
+            $this->directory = $directory;
+        }
+
+        public function fetch_class()
+        {
+            return $this->class;
+        }
+
+        public function fetch_method()
+        {
+            return $this->method;
+        }
+
+        public function fetch_directory()
+        {
+            return $this->directory;
         }
     }
 }

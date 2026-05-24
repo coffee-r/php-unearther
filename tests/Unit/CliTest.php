@@ -75,7 +75,6 @@ class CliTest extends TestCase
             'started_at' => '2026-06-01T00:00:00+00:00',
             'redaction' => array('tokenized' => false, 'token_format' => null),
             'http' => array('method' => 'GET', 'path' => '/x', 'path_pattern' => '/x', 'status' => 200),
-            'calls' => array(),
             'sql' => array(array(
                 'seq' => 1,
                 'operation' => 'SELECT',
@@ -88,7 +87,6 @@ class CliTest extends TestCase
                 'bind_tokens' => null,
                 'bind_raw' => null,
                 'analysis' => array('analyzer' => 'regex', 'operation_confidence' => 'high', 'tables_confidence' => 'best_effort', 'warnings' => array()),
-                'caller' => array(),
             )),
             'external_http' => array(),
             'errors' => array(),
@@ -102,6 +100,28 @@ class CliTest extends TestCase
         $this->assertSame(0, $rawExitCode);
         $this->assertStringNotContainsString('concrete:', implode("\n", $normalOutput));
         $this->assertStringContainsString('concrete:', implode("\n", $rawOutput));
+    }
+
+    public function testReportCommandSupportsTableCatalog()
+    {
+        $catalogPath = sys_get_temp_dir() . '/php-unearth-table-catalog-' . uniqid('', true) . '.json';
+        file_put_contents($catalogPath, json_encode(array(
+            'M_SHOHIN' => '商品マスタ。',
+            'T_CART' => 'カート明細。',
+        )));
+
+        $fixture = escapeshellarg(__DIR__ . '/../Fixtures/jsonl/cart_add.jsonl');
+        exec($this->command('report ' . $fixture . ' --format json --table-catalog ' . escapeshellarg($catalogPath) . ' 2>&1'), $output, $exitCode);
+        @unlink($catalogPath);
+
+        $decoded = json_decode(implode("\n", $output), true);
+        $catalog = $decoded['observed_entrypoints'][0]['table_catalog'];
+
+        $this->assertSame(0, $exitCode, implode("\n", $output));
+        $this->assertSame('M_SHOHIN', $catalog[0]['table']);
+        $this->assertSame('商品マスタ。', $catalog[0]['description']);
+        $this->assertSame('T_CART', $catalog[1]['table']);
+        $this->assertSame('カート明細。', $catalog[1]['description']);
     }
 
     private function command($arguments)
