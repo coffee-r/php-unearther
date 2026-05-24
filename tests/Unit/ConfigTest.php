@@ -28,7 +28,6 @@ class ConfigTest extends TestCase
         $this->assertSame('jsonl', $config->sinkType());
         $this->assertSame('/tmp/unearth-{date}.jsonl', $config->sinkPath());
         $this->assertSame('Y-m-d', $config->sinkDateFormat());
-        $this->assertTrue($config->codeIgniter3CaptureQueryHistory());
         $this->assertSame('sampled_query_history', $config->codeIgniter3SqlCapture());
         $this->assertFalse($config->captureSqlText());
         $this->assertFalse($config->captureBindRaw());
@@ -37,37 +36,6 @@ class ConfigTest extends TestCase
         $this->assertTrue($config->captureJsonResponseShape());
         $this->assertSame(65536, $config->maxBodyBytes());
         $this->assertSame(array(), $config->endpointPatterns());
-    }
-
-    public function testNormalizesLegacyCodeIgniter3QueryHistoryCapture()
-    {
-        $config = Config::fromArray(array(
-            'codeigniter3' => array(
-                'capture_query_history' => false,
-            ),
-        ));
-
-        $this->assertFalse($config->codeIgniter3CaptureQueryHistory());
-        $this->assertSame('none', $config->codeIgniter3SqlCapture());
-    }
-
-    public function testCanUseWrappedDbSqlCaptureMode()
-    {
-        $config = Config::fromArray(array(
-            'codeigniter3' => array(
-                'sql_capture' => 'observed_db',
-            ),
-            'http' => array(
-                'capture_json_request_shape' => false,
-                'capture_json_response_shape' => true,
-                'max_body_bytes' => 128,
-            ),
-        ));
-
-        $this->assertSame('wrapped_db', $config->codeIgniter3SqlCapture());
-        $this->assertFalse($config->captureJsonRequestShape());
-        $this->assertTrue($config->captureJsonResponseShape());
-        $this->assertSame(128, $config->maxBodyBytes());
     }
 
     public function testNormalizesFailureModeAndEndpointPatterns()

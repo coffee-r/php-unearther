@@ -138,11 +138,6 @@ class Config
         return $this->values['sink']['date_format'];
     }
 
-    public function codeIgniter3CaptureQueryHistory()
-    {
-        return $this->codeIgniter3SqlCapture() === 'sampled_query_history';
-    }
-
     public function codeIgniter3SqlCapture()
     {
         return $this->values['codeigniter3']['sql_capture'];
@@ -218,14 +213,6 @@ class Config
 
     private function normalizeValues(array $values)
     {
-        if (isset($values['codeigniter3']) && is_array($values['codeigniter3'])) {
-            $legacy = $values['codeigniter3'];
-            if (array_key_exists('capture_query_history', $legacy) && !array_key_exists('sql_capture', $legacy)) {
-                $values['codeigniter3']['sql_capture'] = $legacy['capture_query_history'] ? 'sampled_query_history' : 'none';
-            }
-            unset($values['codeigniter3']['capture_query_history']);
-        }
-
         return $values;
     }
 
@@ -245,13 +232,7 @@ class Config
     private function normalizeSqlCapture($value)
     {
         $value = strtolower((string) $value);
-        if ($value === 'query_history') {
-            return 'sampled_query_history';
-        }
-        if ($value === 'observed_db') {
-            return 'wrapped_db';
-        }
-        if (in_array($value, array('sampled_query_history', 'wrapped_db', 'none'), true)) {
+        if (in_array($value, array('sampled_query_history', 'none'), true)) {
             return $value;
         }
 

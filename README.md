@@ -822,11 +822,11 @@ array(
 
 CodeIgniter3では、このarrayをhookのparamsとして渡してください。
 
-`codeigniter3.sql_capture`には`sampled_query_history`、`wrapped_db`、`none`を指定できます。古い`query_history`は`sampled_query_history`、古い`observed_db`は`wrapped_db`への互換aliasとして受け付けます。古い`codeigniter3.capture_query_history`キーも互換性のエイリアスとして引き続き受け付けます。
+`codeigniter3.sql_capture`には`sampled_query_history`、`none`を指定できます。
 
 `sql.capture_text`はデフォルトでオフです。SQLイベントは常に`statement_normalized`（リテラルを`{parameter}`に置換）と`statement_hash`を出力します。`capture_text`を`true`にすると生SQLが`statement_text`にも書き込まれます；それ以外は`null`です。テキストキャプチャの有効化は移行分析には有用ですが、アプリケーションがリテラルでSQLを構築している場合に機密値を露出する可能性があります。
 
-`sql.capture_bind_raw`もデフォルトでオフです。`wrapped_db`などbind値を取れる経路でのみ意味があります。AI向けexportでは`bind_raw`は常に除去されます。
+`sql.capture_bind_raw`もデフォルトでオフです。AI向けexportでは`bind_raw`は常に除去されます。
 
 `shape.max_depth`と`shape.max_items`は、巨大な配列・object・循環参照をview変数やrequest bodyから辿り続けないための上限です。上限に達した場合、shapeにはtruncated markerが残ります。
 
@@ -862,9 +862,9 @@ class UnearthHook
         $this->hook->start($config);
     }
 
-    public function finish($config = array())
+    public function finish()
     {
-        $this->hook->finish($config);
+        $this->hook->finish();
     }
 }
 ```
@@ -924,33 +924,6 @@ SQLキャプチャを無効化することもできます：
     'sql_capture' => 'none',
 )
 ```
-
-bind shapeの精度を優先したい場合は、advanced optionとしてDBラッパーも利用可能です：
-
-```php
-use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
-use CoffeeR\Unearth\Adapter\CodeIgniter3\ObservedDb;
-use CoffeeR\Unearth\Sql\SqlAnalyzer;
-
-$CI =& get_instance();
-$CI->db = new ObservedDb($CI->db, Hook::collector());
-```
-
-`ObservedDb`使用時にSQLテキストも含めたい場合は、テキストキャプチャを有効にしたアナライザーを渡します：
-
-```php
-$CI->db = new ObservedDb($CI->db, Hook::collector(), new SqlAnalyzer(true));
-```
-
-`ObservedDb`を使用する場合は、フックがCodeIgniterのクエリ履歴を二重に記録しないよう`sql_capture => wrapped_db`を設定してください：
-
-```php
-'codeigniter3' => array(
-    'sql_capture' => 'wrapped_db',
-)
-```
-
-このラッパーは`query()`を通じた呼び出しを記録しますが、Query Builderを完全にインターセプトする戦略ではありません。多くのCI3アプリケーションでは、クエリ履歴キャプチャの方がより現実的なベースラインです。
 
 ### HTTPシェイプキャプチャ
 

@@ -97,10 +97,10 @@ class Hook
         }
     }
 
-    public function finish(array $config = array())
+    public function finish()
     {
         try {
-            return $this->finishObserved($config);
+            return $this->finishObserved();
         } catch (\Throwable $exception) {
             $this->handleFailure($exception, 'codeigniter3 hook finish');
             return null;
@@ -109,7 +109,7 @@ class Hook
         }
     }
 
-    private function finishObserved(array $config = array())
+    private function finishObserved()
     {
         if (!self::$collector) {
             return;
@@ -117,10 +117,6 @@ class Hook
 
         if (self::$sharedConfig) {
             $this->config = self::$sharedConfig;
-        }
-        if (count($config) > 0) {
-            $this->config = Config::fromArray($this->mergeConfig($this->config->toArray(), $this->normalizeConfig($config)));
-            self::$sharedConfig = $this->config;
         }
 
         $this->recordCodeIgniterQueryHistory();
@@ -194,14 +190,6 @@ class Hook
     {
         if (!isset($config['framework'])) {
             $config['framework'] = 'codeigniter3';
-        }
-
-        if (isset($config['sink_path'])) {
-            if (!isset($config['sink']) || !is_array($config['sink'])) {
-                $config['sink'] = array();
-            }
-            $config['sink']['path'] = $config['sink_path'];
-            unset($config['sink_path']);
         }
 
         return $config;

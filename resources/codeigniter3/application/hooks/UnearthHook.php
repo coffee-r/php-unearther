@@ -25,10 +25,10 @@ class UnearthHook
         }
     }
 
-    public function finish($config = array())
+    public function finish()
     {
         if ($this->hook) {
-            $this->hook->finish(is_array($config) ? $config : array());
+            $this->hook->finish();
         }
     }
 }

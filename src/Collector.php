@@ -4,7 +4,6 @@ namespace CoffeeR\Unearth;
 
 use CoffeeR\Unearth\Sampling\Sampler;
 use CoffeeR\Unearth\Sink\SinkInterface;
-use CoffeeR\Unearth\Sink\NullSink;
 
 class Collector
 {
@@ -18,7 +17,7 @@ class Collector
     public function __construct(?Sampler $sampler = null, ?SinkInterface $sink = null, ?FailureHandler $failureHandler = null, $environment = 'production', array $redaction = array())
     {
         $this->sampler = $sampler ?: new Sampler(0.1);
-        $this->sink = $sink ?: new NullSink();
+        $this->sink = $sink;
         $this->failureHandler = $failureHandler ?: new FailureHandler();
         $this->environment = $environment;
         $this->redaction = $redaction;
@@ -47,7 +46,7 @@ class Collector
         $trace = $this->trace;
         $this->trace = null;
 
-        if ($trace->isSampled()) {
+        if ($trace->isSampled() && $this->sink) {
             try {
                 $this->sink->write($trace->toArray());
             } catch (\Throwable $exception) {

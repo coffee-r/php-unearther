@@ -37,7 +37,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         protected function tearDown(): void
         {
             if (Hook::collector()) {
-                (new Hook())->finish(array('codeigniter3' => array('sql_capture' => 'none')));
+                (new Hook())->finish();
             }
 
             foreach ($this->paths as $path) {
@@ -62,22 +62,6 @@ namespace CoffeeR\Unearth\Tests\Unit {
                 'codeigniter3' => array('sql_capture' => 'none'),
             )));
             (new Hook())->finish();
-
-            $trace = $this->readTrace($path);
-            $this->assertSame(array(), $trace['sql']);
-        }
-
-        public function testFinishConfigCanOverrideSharedConfig()
-        {
-            $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
-
-            (new Hook())->start($this->config($path, array(
-                'codeigniter3' => array('sql_capture' => 'query_history'),
-            )));
-            (new Hook())->finish(array(
-                'codeigniter3' => array('sql_capture' => 'none'),
-            ));
 
             $trace = $this->readTrace($path);
             $this->assertSame(array(), $trace['sql']);
@@ -123,20 +107,6 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $this->assertSame(" select * from users where id = 42 and name = 'coffee' ", $sql['statement_text']);
             $this->assertSame('select * from users where id = {parameter} and name = {parameter}', $sql['statement_normalized']);
             $this->assertStringStartsWith('sha256:', $sql['statement_hash']);
-        }
-
-        public function testObservedDbModeDoesNotAlsoRecordQueryHistory()
-        {
-            $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
-
-            (new Hook())->start($this->config($path, array(
-                'codeigniter3' => array('sql_capture' => 'observed_db'),
-            )));
-            (new Hook())->finish();
-
-            $trace = $this->readTrace($path);
-            $this->assertSame(array(), $trace['sql']);
         }
 
         public function testUnsampledRequestDoesNotEnableSaveQueries()
@@ -232,7 +202,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
 
             (new Hook())->start($this->config($path, array(
                 'sample_rate' => 0.0,
-                'codeigniter3' => array('sql_capture' => 'query_history'),
+                'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
             )));
 
             $trace = Hook::collector()->current();
