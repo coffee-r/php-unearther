@@ -230,54 +230,32 @@ composer update coffee-r/php-unearth
 
 ## Quick Start
 
-CodeIgniter3では、最初にComposer autoloadを読み込む小さなbridge hookを置きます。
+CodeIgniter3では、`resources/codeigniter3/application` 配下のdrop-inファイルを対象アプリの `application` へコピーすると、Composer autoloadを読むbridge hookと設定ファイルをそのまま使えます。
 
-```php
-<?php
-
-use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
-
-class UnearthHook
-{
-    private $hook;
-
-    public function __construct()
-    {
-        require_once FCPATH . 'vendor/autoload.php';
-        $this->hook = new Hook();
-    }
-
-    public function start($config = array())
-    {
-        $this->hook->start($config);
-    }
-
-    public function finish($config = array())
-    {
-        $this->hook->finish($config);
-    }
-}
+```bash
+cp -R vendor/coffee-r/php-unearth/resources/codeigniter3/application/hooks application/
+cp vendor/coffee-r/php-unearth/resources/codeigniter3/application/config/unearth.php application/config/
 ```
 
-`application/config/hooks.php`に登録します。デフォルトのsampling rateは10% (`0.1`) です。
+view変数shapeも取りたい場合だけ、loader用ファイルもコピーします。既存アプリに `application/core/MY_Loader.php` がある場合は、雛形を上書きせず `Unearth_Loader_Trait.php` だけコピーし、既存の `MY_Loader` で `use Unearth_Loader_Trait;` を追加してください。
+
+```bash
+cp vendor/coffee-r/php-unearth/resources/codeigniter3/application/core/Unearth_Loader_Trait.php application/core/
+cp vendor/coffee-r/php-unearth/resources/codeigniter3/application/core/MY_Loader.php application/core/
+```
+
+`application/config/hooks.php`に登録します。設定は `application/config/unearth.php` に閉じるので、外すときはこのhook登録とコピーしたdrop-inファイルを削除するだけです。停止だけなら環境変数 `UNEARTH_ENABLED=0`、または設定の `enabled => false` で無効化できます。
 
 ```php
-$hook['pre_system'][] = array(
+require APPPATH . 'config/unearth.php';
+$unearthConfig = $config['unearth'];
+
+$hook['post_controller_constructor'][] = array(
     'class' => 'UnearthHook',
     'function' => 'start',
     'filename' => 'UnearthHook.php',
     'filepath' => 'hooks',
-    'params' => array(array(
-        'service' => 'legacy-api',
-        'environment' => ENVIRONMENT,
-        'sample_rate' => 0.1,
-        'sink' => array(
-            'path' => APPPATH . 'logs/unearth-{date}.jsonl',
-        ),
-        'codeigniter3' => array(
-            'sql_capture' => 'sampled_query_history',
-        ),
-    )),
+    'params' => $unearthConfig,
 );
 
 $hook['post_system'][] = array(
