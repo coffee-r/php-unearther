@@ -80,7 +80,7 @@ foreach ($exportLines as $line) {
 
 $report = json_decode(file_get_contents($root . '/runtime/e2e-report.json'), true);
 assertTrue(is_array($report), 'report should be JSON');
-assertTrue(isset($report['endpoint_count']) && $report['endpoint_count'] >= 5, 'report should aggregate endpoints');
+assertTrue(isset($report['observed_entrypoint_count']) && $report['observed_entrypoint_count'] >= 5, 'report should aggregate observed entrypoints');
 
 echo "CI3 SQLite e2e assertions passed\n";
 

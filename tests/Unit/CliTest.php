@@ -16,7 +16,10 @@ class CliTest extends TestCase
 
         $this->assertSame(0, $exitCode, $json);
         $this->assertIsArray($decoded);
-        $this->assertSame(1, $decoded['endpoint_count']);
+        $this->assertSame('observed_behavior', $decoded['report_kind']);
+        $this->assertSame(1, $decoded['observed_entrypoint_count']);
+        $this->assertArrayNotHasKey('endpoint_count', $decoded);
+        $this->assertArrayNotHasKey('endpoints', $decoded);
     }
 
     public function testReportCommandWarnsAboutInvalidJsonl()

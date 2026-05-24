@@ -7,26 +7,31 @@ class MarkdownRenderer
     public function render(array $report)
     {
         $lines = array();
-        $lines[] = '# Observed API Behavior Report';
+        $lines[] = '# Observed Behavior Evidence Report';
         $lines[] = '';
         $lines[] = '- Generated at: `' . $report['generated_at'] . '`';
-        $lines[] = '- Endpoints: `' . $report['endpoint_count'] . '`';
+        $lines[] = '- Observed entrypoints: `' . $this->entrypointCount($report) . '`';
         $lines[] = '- Traces: `' . (isset($report['trace_count']) ? $report['trace_count'] : '-') . '`';
         $lines[] = '- Observed window: `' . (isset($report['observed_started_at_min']) ? $report['observed_started_at_min'] : '-') . '` to `' . (isset($report['observed_started_at_max']) ? $report['observed_started_at_max'] : '-') . '`';
         $lines[] = '- Value mode: `' . (isset($report['value_mode']) ? $report['value_mode'] : 'normalized') . '`';
         $lines[] = '';
+        $lines[] = '> Observed entrypoints are evidence views, not assumed migration units.';
+        $lines[] = '';
 
-        foreach ($report['endpoints'] as $endpoint) {
-            $lines[] = '## ' . $endpoint['method'] . ' ' . $endpoint['path'];
+        foreach ($this->entrypoints($report) as $entrypoint) {
+            $lines[] = '## ' . $entrypoint['method'] . ' ' . $entrypoint['path'];
             $lines[] = '';
-            $lines[] = '- Observed requests: `' . $endpoint['observed_count'] . '`';
-            $lines[] = '- Error rate: `' . $this->percent(isset($endpoint['error_rate']) ? $endpoint['error_rate'] : 0.0) . '`';
+            $lines[] = '- Entrypoint key: `' . $this->backtickValue(isset($entrypoint['entrypoint_key']) ? $entrypoint['entrypoint_key'] : $entrypoint['method'] . ' ' . $entrypoint['path']) . '`';
+            $lines[] = '- Entrypoint type: `' . $this->backtickValue(isset($entrypoint['entrypoint_type']) ? $entrypoint['entrypoint_type'] : 'http') . '`';
+            $lines[] = '- Migration unit assumption: `' . $this->backtickValue(isset($entrypoint['migration_unit_assumption']) ? $entrypoint['migration_unit_assumption'] : 'not_assumed') . '`';
+            $lines[] = '- Observed requests: `' . $entrypoint['observed_count'] . '`';
+            $lines[] = '- Error rate: `' . $this->percent(isset($entrypoint['error_rate']) ? $entrypoint['error_rate'] : 0.0) . '`';
             $lines[] = '';
             $lines[] = '### Status Codes';
             $lines[] = '';
             $lines[] = '| Status | Count |';
             $lines[] = '|---|---:|';
-            foreach ($endpoint['status_codes'] as $status => $count) {
+            foreach ($entrypoint['status_codes'] as $status => $count) {
                 $lines[] = '| ' . $this->tableCell($status) . ' | ' . $this->tableCell($count) . ' |';
             }
             $lines[] = '';
@@ -34,7 +39,7 @@ class MarkdownRenderer
             $lines[] = '';
             $lines[] = '| Error | Count | Representative Trace |';
             $lines[] = '|---|---:|---|';
-            $errors = isset($endpoint['errors']) && is_array($endpoint['errors']) ? $endpoint['errors'] : array();
+            $errors = isset($entrypoint['errors']) && is_array($entrypoint['errors']) ? $entrypoint['errors'] : array();
             foreach ($errors as $error) {
                 $lines[] = '| ' . $this->tableCell($error['error']) . ' | ' . $this->tableCell($error['count']) . ' | ' . $this->tableCell($error['representative_trace_id']) . ' |';
             }
@@ -44,23 +49,23 @@ class MarkdownRenderer
             $lines[] = '';
             $lines[] = '### Request Shape';
             $lines[] = '';
-            $lines = array_merge($lines, $this->shapeTable($endpoint['request_shape']));
+            $lines = array_merge($lines, $this->shapeTable($entrypoint['request_shape']));
             $lines[] = '';
             $lines[] = '### Response Shape';
             $lines[] = '';
-            $lines = array_merge($lines, $this->shapeTable($endpoint['response_shape']));
+            $lines = array_merge($lines, $this->shapeTable($entrypoint['response_shape']));
             $lines[] = '';
             $lines[] = '### Observed Execution Patterns';
             $lines[] = '';
             $lines[] = '| Pattern | Count | Status | SQL Flow | Tables | External Calls |';
             $lines[] = '|---|---:|---|---|---|---|';
-            foreach ($endpoint['patterns'] as $pattern) {
-                $lines[] = '| ' . $this->tableCell($pattern['pattern_id']) . ' | ' . $this->tableCell($pattern['count']) . ' | ' . $this->tableCell(implode(', ', $pattern['statuses'])) . ' | ' . $this->tableCell($this->sqlFlowLabel($pattern['sql_flow'])) . ' | ' . $this->tableCell(implode(', ', $pattern['tables'])) . ' | ' . $this->tableCell($this->externalLabel($pattern['external_http'])) . ' |';
+            foreach ($entrypoint['patterns'] as $pattern) {
+                $lines[] = '| ' . $this->tableCell($this->patternId($pattern)) . ' | ' . $this->tableCell($pattern['count']) . ' | ' . $this->tableCell(implode(', ', $pattern['statuses'])) . ' | ' . $this->tableCell($this->sqlFlowLabel($pattern['sql_flow'])) . ' | ' . $this->tableCell(implode(', ', $pattern['tables'])) . ' | ' . $this->tableCell($this->externalLabel($pattern['external_http'])) . ' |';
             }
             $lines[] = '';
 
-            foreach ($endpoint['patterns'] as $pattern) {
-                $lines[] = '### Pattern: ' . $pattern['pattern_id'];
+            foreach ($entrypoint['patterns'] as $pattern) {
+                $lines[] = '### Behavior pattern: ' . $this->patternId($pattern);
                 $lines[] = '';
                 $lines[] = '- Observed: `' . $pattern['count'] . '`';
                 $lines[] = '- Representative trace: `' . $pattern['representative_trace_id'] . '`';
@@ -87,10 +92,12 @@ class MarkdownRenderer
     private function representativeSection(array $pattern)
     {
         $lines = array();
-        $lines[] = '#### Representative Case';
+        $lines[] = '#### Representative Observed Flow';
         $lines[] = '';
 
-        $rep = isset($pattern['representative']) && is_array($pattern['representative']) ? $pattern['representative'] : array();
+        $rep = isset($pattern['representative_observed_flow']) && is_array($pattern['representative_observed_flow'])
+            ? $pattern['representative_observed_flow']
+            : (isset($pattern['representative']) && is_array($pattern['representative']) ? $pattern['representative'] : array());
 
         $lines[] = '- trace_id: `' . $this->backtickValue(isset($rep['trace_id']) ? $rep['trace_id'] : '-') . '`';
         $lines[] = '- status: `' . $this->backtickValue(isset($rep['status']) && $rep['status'] !== null ? $rep['status'] : '-') . '`';
@@ -138,6 +145,21 @@ class MarkdownRenderer
         }
 
         return $lines;
+    }
+
+    private function entrypoints(array $report)
+    {
+        return isset($report['observed_entrypoints']) && is_array($report['observed_entrypoints']) ? $report['observed_entrypoints'] : array();
+    }
+
+    private function entrypointCount(array $report)
+    {
+        return isset($report['observed_entrypoint_count']) ? $report['observed_entrypoint_count'] : count($this->entrypoints($report));
+    }
+
+    private function patternId(array $pattern)
+    {
+        return isset($pattern['behavior_pattern_id']) ? $pattern['behavior_pattern_id'] : 'pattern';
     }
 
     private function encodeInline($value)

@@ -14,7 +14,7 @@ class Aggregator
 
     public function aggregate(array $traces)
     {
-        $endpoints = array();
+        $observedEntrypoints = array();
         $started = array();
         $sampleRates = array();
 
@@ -28,68 +28,69 @@ class Aggregator
             $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
             $method = isset($http['method']) ? strtoupper($http['method']) : 'UNKNOWN';
             $path = isset($http['path_pattern']) ? $http['path_pattern'] : (isset($http['path']) ? $http['path'] : 'unknown');
-            $endpointKey = $method . ' ' . $path;
+            $entrypointKey = $method . ' ' . $path;
 
-            if (!isset($endpoints[$endpointKey])) {
-                $endpoints[$endpointKey] = $this->emptyEndpoint($method, $path);
+            if (!isset($observedEntrypoints[$entrypointKey])) {
+                $observedEntrypoints[$entrypointKey] = $this->emptyObservedEntrypoint($method, $path, $entrypointKey);
             }
 
-            $endpoint =& $endpoints[$endpointKey];
-            $endpoint['observed_count']++;
+            $entrypoint =& $observedEntrypoints[$entrypointKey];
+            $entrypoint['observed_count']++;
 
             if (isset($http['status'])) {
                 $status = (string) $http['status'];
-                if (!isset($endpoint['status_codes'][$status])) {
-                    $endpoint['status_codes'][$status] = 0;
+                if (!isset($entrypoint['status_codes'][$status])) {
+                    $entrypoint['status_codes'][$status] = 0;
                 }
-                $endpoint['status_codes'][$status]++;
+                $entrypoint['status_codes'][$status]++;
             }
 
             if (isset($http['route'])) {
-                $endpoint['routes'][$http['route']] = true;
+                $entrypoint['routes'][$http['route']] = true;
             }
             if (isset($http['controller'])) {
-                $endpoint['controllers'][$http['controller']] = true;
+                $entrypoint['controllers'][$http['controller']] = true;
             }
             if (isset($http['endpoint_name'])) {
-                $endpoint['endpoint_names'][$http['endpoint_name']] = true;
+                $entrypoint['endpoint_names'][$http['endpoint_name']] = true;
             }
 
-            $endpoint['request_shape'] = $this->mergeShape($endpoint['request_shape'], isset($http['request_shape']) ? $http['request_shape'] : array());
-            $endpoint['response_shape'] = $this->mergeShape($endpoint['response_shape'], isset($http['response_shape']) ? $http['response_shape'] : array());
+            $entrypoint['request_shape'] = $this->mergeShape($entrypoint['request_shape'], isset($http['request_shape']) ? $http['request_shape'] : array());
+            $entrypoint['response_shape'] = $this->mergeShape($entrypoint['response_shape'], isset($http['response_shape']) ? $http['response_shape'] : array());
 
             $errors = $this->errorEvents($trace);
             if (count($errors) > 0) {
-                $endpoint['error_count']++;
+                $entrypoint['error_count']++;
                 foreach ($errors as $error) {
                     $label = $this->errorLabel($error);
-                    if (!isset($endpoint['errors'][$label])) {
-                        $endpoint['errors'][$label] = array(
+                    if (!isset($entrypoint['errors'][$label])) {
+                        $entrypoint['errors'][$label] = array(
                             'error' => $label,
                             'count' => 0,
                             'representative_trace_id' => isset($trace['trace_id']) ? $trace['trace_id'] : null,
                         );
                     }
-                    $endpoint['errors'][$label]['count']++;
+                    $entrypoint['errors'][$label]['count']++;
                 }
             }
 
             $signature = $this->patternSignature($trace);
-            if (!isset($endpoint['patterns'][$signature])) {
-                $endpoint['patterns'][$signature] = array(
-                    'pattern_id' => 'pattern-' . (count($endpoint['patterns']) + 1),
-                    'signature' => $signature,
+            if (!isset($entrypoint['patterns'][$signature])) {
+                $patternId = 'pattern-' . (count($entrypoint['patterns']) + 1);
+                $entrypoint['patterns'][$signature] = array(
+                    'behavior_pattern_id' => $patternId,
+                    'observed_flow_signature' => $signature,
                     'count' => 0,
                     'statuses' => array(),
                     'sql_flow' => array(),
                     'tables' => array(),
                     'external_http' => array(),
                     'representative_trace_id' => isset($trace['trace_id']) ? $trace['trace_id'] : null,
-                    'representative' => $this->buildRepresentative($trace),
+                    'representative_observed_flow' => $this->buildRepresentativeObservedFlow($trace),
                 );
             }
 
-            $pattern =& $endpoint['patterns'][$signature];
+            $pattern =& $entrypoint['patterns'][$signature];
             $pattern['count']++;
             if (isset($http['status'])) {
                 $pattern['statuses'][(string) $http['status']] = true;
@@ -120,18 +121,18 @@ class Aggregator
             }
 
             unset($pattern);
-            unset($endpoint);
+            unset($entrypoint);
         }
 
-        foreach ($endpoints as &$endpoint) {
-            $endpoint['error_rate'] = $endpoint['observed_count'] > 0 ? round($endpoint['error_count'] / $endpoint['observed_count'], 4) : 0.0;
+        foreach ($observedEntrypoints as &$entrypoint) {
+            $entrypoint['error_rate'] = $entrypoint['observed_count'] > 0 ? round($entrypoint['error_count'] / $entrypoint['observed_count'], 4) : 0.0;
 
-            $endpoint['routes'] = array_keys($endpoint['routes']);
-            $endpoint['controllers'] = array_keys($endpoint['controllers']);
-            $endpoint['endpoint_names'] = array_keys($endpoint['endpoint_names']);
-            $endpoint['errors'] = array_values($endpoint['errors']);
+            $entrypoint['routes'] = array_keys($entrypoint['routes']);
+            $entrypoint['controllers'] = array_keys($entrypoint['controllers']);
+            $entrypoint['endpoint_names'] = array_keys($entrypoint['endpoint_names']);
+            $entrypoint['errors'] = array_values($entrypoint['errors']);
 
-            foreach ($endpoint['patterns'] as &$pattern) {
+            foreach ($entrypoint['patterns'] as &$pattern) {
                 $pattern['statuses'] = array_keys($pattern['statuses']);
                 $pattern['tables'] = array_keys($pattern['tables']);
                 $pattern['external_http'] = array_values($pattern['external_http']);
@@ -139,27 +140,31 @@ class Aggregator
             }
             unset($pattern);
 
-            $endpoint['patterns'] = array_values($endpoint['patterns']);
+            $entrypoint['patterns'] = array_values($entrypoint['patterns']);
         }
-        unset($endpoint);
+        unset($entrypoint);
 
-        ksort($endpoints);
+        ksort($observedEntrypoints);
 
         return array(
             'generated_at' => date('c'),
-            'endpoint_count' => count($endpoints),
+            'report_kind' => 'observed_behavior',
+            'observed_entrypoint_count' => count($observedEntrypoints),
             'trace_count' => count($traces),
             'observed_started_at_min' => count($started) ? min($started) : null,
             'observed_started_at_max' => count($started) ? max($started) : null,
             'sample_rates' => array_keys($sampleRates),
             'value_mode' => $this->valueMode,
-            'endpoints' => array_values($endpoints),
+            'observed_entrypoints' => array_values($observedEntrypoints),
         );
     }
 
-    private function emptyEndpoint($method, $path)
+    private function emptyObservedEntrypoint($method, $path, $entrypointKey)
     {
         return array(
+            'entrypoint_key' => $entrypointKey,
+            'entrypoint_type' => 'http',
+            'migration_unit_assumption' => 'not_assumed',
             'method' => $method,
             'path' => $path,
             'observed_count' => 0,
@@ -235,7 +240,7 @@ class Aggregator
         return $flow;
     }
 
-    private function buildRepresentative(array $trace)
+    private function buildRepresentativeObservedFlow(array $trace)
     {
         $http = isset($trace['http']) && is_array($trace['http']) ? $trace['http'] : array();
         $sql = array();
