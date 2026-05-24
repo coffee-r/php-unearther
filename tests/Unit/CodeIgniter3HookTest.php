@@ -338,12 +338,13 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $this->assertArrayNotHasKey('endpoint_name', $trace['http']);
         }
 
-        public function testFinishThrowsObservationFailuresByDefaultAndResetsState()
+        public function testFinishThrowsObservationFailuresWhenConfiguredToThrowAndResetsState()
         {
             $path = $this->tempPath();
             $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
 
             (new Hook())->start($this->config($path, array(
+                'failure_mode' => 'throw',
                 'http' => array('capture_json_response_shape' => true),
             )));
 

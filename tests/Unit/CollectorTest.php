@@ -43,9 +43,9 @@ class CollectorTest extends TestCase
         $this->assertCount(0, $sink->traces);
     }
 
-    public function testThrowsSinkFailuresByDefault()
+    public function testThrowsSinkFailuresWhenConfiguredToThrow()
     {
-        $collector = new Collector(new Sampler(1.0), new ThrowingSink());
+        $collector = new Collector(new Sampler(1.0), new ThrowingSink(), new FailureHandler('throw'));
         $collector->start('legacy-api', 'codeigniter3');
 
         $this->expectException(\RuntimeException::class);

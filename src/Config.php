@@ -56,7 +56,7 @@ class Config
             'service' => 'legacy-api',
             'framework' => 'codeigniter3',
             'environment' => 'production',
-            'failure_mode' => FailureHandler::MODE_THROW,
+            'failure_mode' => FailureHandler::MODE_LOG,
             'sample_rate' => 0.1,
             'sink' => array(
                 'type' => 'jsonl',

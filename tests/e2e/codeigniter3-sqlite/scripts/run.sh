@@ -62,9 +62,14 @@ request 200 GET '/api/products?category_id=1'
 request 200 GET /products/SKU-COFFEE
 request 200 POST /api/orders/dry-run '{"user_id":1,"items":[{"product_code":"SKU-MUG","quantity":1}]}'
 request 201 POST /api/orders '{"user_id":1,"items":[{"product_code":"SKU-COFFEE","quantity":1},{"product_code":"SKU-ESPRESSO","quantity":1}]}'
+request 200 GET '/api/memory/sampling?queries=100'
+request 200 GET '/api/memory/sampling?queries=300'
+request 200 GET '/api/memory/sampling?queries=1000'
 request 422 POST /api/orders '{"user_id":1,"items":[{"product_code":"NO-SUCH-SKU","quantity":1}]}'
 
 "${COMPOSE[@]}" exec -T app sh -lc 'php vendor/bin/unearth export runtime/logs/*.jsonl --profile ai --format jsonl > runtime/e2e-export.jsonl'
 "${COMPOSE[@]}" exec -T app sh -lc 'php vendor/bin/unearth report runtime/logs/*.jsonl --format json > runtime/e2e-report.json'
+"${COMPOSE[@]}" exec -T app php scripts/collect-memory.php
 "${COMPOSE[@]}" exec -T app sh -lc 'find runtime application/logs -maxdepth 2 -type f -print'
+"${COMPOSE[@]}" exec -T app cat runtime/e2e-memory.json
 "${COMPOSE[@]}" exec -T app php scripts/assert-traces.php

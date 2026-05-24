@@ -24,7 +24,7 @@ class ConfigTest extends TestCase
         $this->assertSame('shop-api', $config->service());
         $this->assertSame('codeigniter3', $config->framework());
         $this->assertSame(0.25, $config->sampleRate());
-        $this->assertSame('throw', $config->failureMode());
+        $this->assertSame('log', $config->failureMode());
         $this->assertSame('jsonl', $config->sinkType());
         $this->assertSame('/tmp/unearth-{date}.jsonl', $config->sinkPath());
         $this->assertSame('Y-m-d', $config->sinkDateFormat());
@@ -58,7 +58,7 @@ class ConfigTest extends TestCase
             'name' => 'users.show',
         )), $config->endpointPatterns());
 
-        $this->assertSame('throw', Config::fromArray(array('failure_mode' => 'silent'))->failureMode());
+        $this->assertSame('log', Config::fromArray(array('failure_mode' => 'silent'))->failureMode());
     }
 
     public function testCanEnableSqlTextCapture()

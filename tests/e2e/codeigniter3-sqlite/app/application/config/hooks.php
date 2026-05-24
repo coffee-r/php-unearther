@@ -16,6 +16,7 @@ $unearthConfig = array(
         'capture_json_response_shape' => true,
         'endpoint_patterns' => array(
             array('method' => 'POST', 'path' => '/api/users/register', 'name' => 'users.register'),
+            array('method' => 'GET', 'path' => '/api/memory/sampling', 'name' => 'memory.sampling'),
             array('method' => 'GET', 'path' => '/api/products', 'name' => 'products.index'),
             array('method' => 'GET', 'path' => '/products/{code}', 'name' => 'products.show'),
             array('method' => 'POST', 'path' => '/api/orders/dry-run', 'name' => 'orders.dry_run'),

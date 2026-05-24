@@ -25,20 +25,21 @@ namespace CoffeeR\Unearth\Tests\Unit {
             unset($GLOBALS['__php_unearth_log_messages']);
         }
 
-        public function testNormalizeModeAcceptsKnownAndFallsBackToThrow()
+        public function testNormalizeModeAcceptsKnownAndFallsBackToLog()
         {
             $this->assertSame(FailureHandler::MODE_THROW, FailureHandler::normalizeMode('throw'));
             $this->assertSame(FailureHandler::MODE_THROW, FailureHandler::normalizeMode('THROW'));
             $this->assertSame(FailureHandler::MODE_LOG, FailureHandler::normalizeMode('LOG'));
-            $this->assertSame(FailureHandler::MODE_THROW, FailureHandler::normalizeMode('silent'));
-            $this->assertSame(FailureHandler::MODE_THROW, FailureHandler::normalizeMode(null));
+            $this->assertSame(FailureHandler::MODE_LOG, FailureHandler::normalizeMode('silent'));
+            $this->assertSame(FailureHandler::MODE_LOG, FailureHandler::normalizeMode(null));
         }
 
         public function testModeGetterReflectsConstructorArgument()
         {
-            $this->assertSame(FailureHandler::MODE_THROW, (new FailureHandler())->mode());
+            $this->assertSame(FailureHandler::MODE_LOG, (new FailureHandler())->mode());
             $this->assertSame(FailureHandler::MODE_LOG, (new FailureHandler('log'))->mode());
-            $this->assertSame(FailureHandler::MODE_THROW, (new FailureHandler('bogus'))->mode());
+            $this->assertSame(FailureHandler::MODE_THROW, (new FailureHandler('throw'))->mode());
+            $this->assertSame(FailureHandler::MODE_LOG, (new FailureHandler('bogus'))->mode());
         }
 
         public function testHandleInThrowModeRethrowsOriginalException()

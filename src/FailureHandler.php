@@ -10,7 +10,7 @@ class FailureHandler
     private $mode;
     private $logger;
 
-    public function __construct($mode = self::MODE_THROW, $logger = null)
+    public function __construct($mode = self::MODE_LOG, $logger = null)
     {
         $this->mode = self::normalizeMode($mode);
         $this->logger = is_callable($logger) ? $logger : null;
@@ -23,7 +23,7 @@ class FailureHandler
             return $mode;
         }
 
-        return self::MODE_THROW;
+        return self::MODE_LOG;
     }
 
     public function mode()
