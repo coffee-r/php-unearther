@@ -1,10 +1,10 @@
 #!/usr/bin/env php
 <?php
 
-use CoffeeR\Unearth\Report\Aggregator;
-use CoffeeR\Unearth\Export\RedactedExporter;
-use CoffeeR\Unearth\Report\JsonlReader;
-use CoffeeR\Unearth\Report\MarkdownRenderer;
+use CoffeeR\Ci3Unearth\Report\Aggregator;
+use CoffeeR\Ci3Unearth\Export\RedactedExporter;
+use CoffeeR\Ci3Unearth\Report\JsonlReader;
+use CoffeeR\Ci3Unearth\Report\MarkdownRenderer;
 
 $autoloadPaths = array();
 if (isset($_composer_autoload_path)) {

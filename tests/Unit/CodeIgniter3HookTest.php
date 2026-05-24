@@ -4,19 +4,19 @@ namespace {
     if (!function_exists('get_instance')) {
         function get_instance()
         {
-            return isset($GLOBALS['__php_unearth_ci_instance']) ? $GLOBALS['__php_unearth_ci_instance'] : null;
+            return isset($GLOBALS['__php_ci3_unearth_ci_instance']) ? $GLOBALS['__php_ci3_unearth_ci_instance'] : null;
         }
     }
     if (!function_exists('log_message')) {
         function log_message($level, $message)
         {
-            $GLOBALS['__php_unearth_log_messages'][] = array($level, $message);
+            $GLOBALS['__php_ci3_unearth_log_messages'][] = array($level, $message);
         }
     }
 }
 
-namespace CoffeeR\Unearth\Tests\Unit {
-    use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
+namespace CoffeeR\Ci3Unearth\Tests\Unit {
+    use CoffeeR\Ci3Unearth\Adapter\CodeIgniter3\Hook;
     use PHPUnit\Framework\TestCase;
 
     class CodeIgniter3HookTest extends TestCase
@@ -30,8 +30,8 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $_SERVER['REQUEST_METHOD'] = 'POST';
             $_SERVER['REQUEST_URI'] = '/api/test?debug=1';
             unset($_SERVER['CONTENT_TYPE'], $_SERVER['HTTP_CONTENT_TYPE']);
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null);
-            $GLOBALS['__php_unearth_log_messages'] = array();
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_ci3_unearth_log_messages'] = array();
         }
 
         protected function tearDown(): void
@@ -46,8 +46,8 @@ namespace CoffeeR\Unearth\Tests\Unit {
                 }
             }
 
-            unset($GLOBALS['__php_unearth_ci_instance']);
-            unset($GLOBALS['__php_unearth_log_messages']);
+            unset($GLOBALS['__php_ci3_unearth_ci_instance']);
+            unset($GLOBALS['__php_ci3_unearth_log_messages']);
             $_GET = array();
             $_POST = array();
             unset($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'], $_SERVER['CONTENT_TYPE'], $_SERVER['HTTP_CONTENT_TYPE']);
@@ -56,7 +56,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testFinishUsesStartConfigAcrossHookInstances()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
 
             (new Hook())->start($this->config($path, array(
                 'codeigniter3' => array('sql_capture' => 'none'),
@@ -70,14 +70,14 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testQueryHistoryCaptureRecordsSql()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null);
-            $GLOBALS['__php_unearth_ci_instance']->db->save_queries = false;
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_ci3_unearth_ci_instance']->db->save_queries = false;
 
             (new Hook())->start($this->config($path, array(
                 'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
             )));
-            $this->assertTrue($GLOBALS['__php_unearth_ci_instance']->db->save_queries);
-            $GLOBALS['__php_unearth_ci_instance']->db->queries[] = 'select * from users';
+            $this->assertTrue($GLOBALS['__php_ci3_unearth_ci_instance']->db->save_queries);
+            $GLOBALS['__php_ci3_unearth_ci_instance']->db->queries[] = 'select * from users';
             (new Hook())->finish();
 
             $trace = $this->readTrace($path);
@@ -88,19 +88,19 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $this->assertNull($trace['sql'][0]['statement_text']);
             $this->assertContains('query_history_capture_has_no_bind_values', $trace['sql'][0]['analysis']['warnings']);
             $this->assertSame('select * from users', $trace['sql'][0]['statement_normalized']);
-            $this->assertFalse($GLOBALS['__php_unearth_ci_instance']->db->save_queries);
+            $this->assertFalse($GLOBALS['__php_ci3_unearth_ci_instance']->db->save_queries);
         }
 
         public function testQueryHistoryCaptureCanRecordSqlText()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null);
 
             (new Hook())->start($this->config($path, array(
                 'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
                 'sql' => array('capture_text' => true),
             )));
-            $GLOBALS['__php_unearth_ci_instance']->db->queries[] = " select * from users where id = 42 and name = 'coffee' ";
+            $GLOBALS['__php_ci3_unearth_ci_instance']->db->queries[] = " select * from users where id = 42 and name = 'coffee' ";
             (new Hook())->finish();
 
             $sql = $this->readTrace($path)['sql'][0];
@@ -112,23 +112,23 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testUnsampledRequestDoesNotEnableSaveQueries()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null);
-            $GLOBALS['__php_unearth_ci_instance']->db->save_queries = false;
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null);
+            $GLOBALS['__php_ci3_unearth_ci_instance']->db->save_queries = false;
 
             (new Hook())->start($this->config($path, array(
                 'sample_rate' => 0.0,
                 'codeigniter3' => array('sql_capture' => 'sampled_query_history'),
             )));
 
-            $this->assertFalse($GLOBALS['__php_unearth_ci_instance']->db->save_queries);
+            $this->assertFalse($GLOBALS['__php_ci3_unearth_ci_instance']->db->save_queries);
             (new Hook())->finish();
         }
 
         public function testObserveDbCapturesLaterLoadedConnection()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null);
-            unset($GLOBALS['__php_unearth_ci_instance']->db);
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null);
+            unset($GLOBALS['__php_ci3_unearth_ci_instance']->db);
 
             (new Hook())->start($this->config($path));
             $db = new \stdClass();
@@ -147,7 +147,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testRouteInfoCapturesControllerActionAndControllerPath()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), null, new CodeIgniter3RouterStub('cart', 'add', 'api/'));
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), null, new CodeIgniter3RouterStub('cart', 'add', 'api/'));
 
             (new Hook())->start($this->config($path));
             (new Hook())->finish();
@@ -198,7 +198,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $path = $this->tempPath();
             $_GET = array('secret' => 'query');
             $_POST = array('secret' => 'body');
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array('select * from users'), array(0.012), null);
 
             (new Hook())->start($this->config($path, array(
                 'sample_rate' => 0.0,
@@ -218,7 +218,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testResponseShapeIsCapturedByDefault()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
                 'application/json; charset=utf-8',
                 '{"ok":true,"items":[{"id":1},{"name":"coffee"}]}'
             ));
@@ -239,7 +239,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testResponseShapeCanBeDisabled()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
                 'application/json',
                 '{"ok":true}'
             ));
@@ -256,7 +256,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testHtmlContentTypeIsDetectedAsHtmlResponseKind()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
                 'text/html; charset=UTF-8',
                 '<html><body>ok</body></html>'
             ));
@@ -341,7 +341,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testFinishThrowsObservationFailuresWhenConfiguredToThrowAndResetsState()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
 
             (new Hook())->start($this->config($path, array(
                 'failure_mode' => 'throw',
@@ -361,7 +361,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
         public function testFinishLogsObservationFailuresInLogModeAndResetsState()
         {
             $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
+            $GLOBALS['__php_ci3_unearth_ci_instance'] = $this->ci(array(), array(), new ThrowingCodeIgniter3OutputStub());
 
             (new Hook())->start($this->config($path, array(
                 'failure_mode' => 'log',
@@ -371,8 +371,8 @@ namespace CoffeeR\Unearth\Tests\Unit {
 
             $this->assertNull(Hook::collector());
             $this->assertFileDoesNotExist($path);
-            $this->assertSame('error', $GLOBALS['__php_unearth_log_messages'][0][0]);
-            $this->assertStringContainsString('[php-unearth] codeigniter3 hook finish failed: RuntimeException', $GLOBALS['__php_unearth_log_messages'][0][1]);
+            $this->assertSame('error', $GLOBALS['__php_ci3_unearth_log_messages'][0][0]);
+            $this->assertStringContainsString('[php-ci3-unearth] codeigniter3 hook finish failed: RuntimeException', $GLOBALS['__php_ci3_unearth_log_messages'][0][1]);
         }
 
         private function config($path, array $overrides = array())
@@ -411,7 +411,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
 
         private function tempPath()
         {
-            $path = sys_get_temp_dir() . '/php-unearth-hook-test-' . uniqid('', true) . '.jsonl';
+            $path = sys_get_temp_dir() . '/php-ci3-unearth-hook-test-' . uniqid('', true) . '.jsonl';
             $this->paths[] = $path;
 
             return $path;

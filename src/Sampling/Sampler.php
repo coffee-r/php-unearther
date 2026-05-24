@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Sampling;
+namespace CoffeeR\Ci3Unearth\Sampling;
 
 class Sampler
 {

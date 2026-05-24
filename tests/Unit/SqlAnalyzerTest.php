@@ -1,9 +1,9 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Sql\SqlAnalyzer;
-use CoffeeR\Unearth\Redaction\Redactor;
+use CoffeeR\Ci3Unearth\Sql\SqlAnalyzer;
+use CoffeeR\Ci3Unearth\Redaction\Redactor;
 use PHPUnit\Framework\TestCase;
 
 class SqlAnalyzerTest extends TestCase

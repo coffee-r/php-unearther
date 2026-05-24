@@ -1,9 +1,9 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit\Schema;
+namespace CoffeeR\Ci3Unearth\Tests\Unit\Schema;
 
-use CoffeeR\Unearth\Report\JsonlReader;
-use CoffeeR\Unearth\Schema\ObservationValidator;
+use CoffeeR\Ci3Unearth\Report\JsonlReader;
+use CoffeeR\Ci3Unearth\Schema\ObservationValidator;
 use PHPUnit\Framework\TestCase;
 
 class ObservationValidatorTest extends TestCase

@@ -1,10 +1,10 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Report\Aggregator;
-use CoffeeR\Unearth\Report\JsonlReader;
-use CoffeeR\Unearth\Report\MarkdownRenderer;
+use CoffeeR\Ci3Unearth\Report\Aggregator;
+use CoffeeR\Ci3Unearth\Report\JsonlReader;
+use CoffeeR\Ci3Unearth\Report\MarkdownRenderer;
 use PHPUnit\Framework\TestCase;
 
 class MarkdownRendererTest extends TestCase

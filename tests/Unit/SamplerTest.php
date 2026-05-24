@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Sampling\Sampler;
+use CoffeeR\Ci3Unearth\Sampling\Sampler;
 use PHPUnit\Framework\TestCase;
 
 class SamplerTest extends TestCase

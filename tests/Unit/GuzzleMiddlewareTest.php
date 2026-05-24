@@ -1,11 +1,11 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Collector;
-use CoffeeR\Unearth\Guzzle\UnearthMiddleware;
-use CoffeeR\Unearth\Sampling\Sampler;
-use CoffeeR\Unearth\Sink\SinkInterface;
+use CoffeeR\Ci3Unearth\Collector;
+use CoffeeR\Ci3Unearth\Guzzle\UnearthMiddleware;
+use CoffeeR\Ci3Unearth\Sampling\Sampler;
+use CoffeeR\Ci3Unearth\Sink\SinkInterface;
 use PHPUnit\Framework\TestCase;
 
 class GuzzleMiddlewareTest extends TestCase

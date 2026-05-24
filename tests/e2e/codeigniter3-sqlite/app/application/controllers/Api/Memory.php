@@ -2,7 +2,7 @@
 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
+use CoffeeR\Ci3Unearth\Adapter\CodeIgniter3\Hook;
 
 class Memory extends MY_Controller
 {

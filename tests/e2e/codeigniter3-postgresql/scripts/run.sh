@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 E2E_DIR="$ROOT_DIR/tests/e2e/codeigniter3-postgresql"
-COMPOSE=(docker compose -f "$E2E_DIR/docker-compose.yml" -p php-unearth-ci3-pg)
+COMPOSE=(docker compose -f "$E2E_DIR/docker-compose.yml" -p php-ci3-unearth-pg)
 BASE_URL="http://localhost:18081"
 
 cleanup() {

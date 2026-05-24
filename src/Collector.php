@@ -1,9 +1,9 @@
 <?php
 
-namespace CoffeeR\Unearth;
+namespace CoffeeR\Ci3Unearth;
 
-use CoffeeR\Unearth\Sampling\Sampler;
-use CoffeeR\Unearth\Sink\SinkInterface;
+use CoffeeR\Ci3Unearth\Sampling\Sampler;
+use CoffeeR\Ci3Unearth\Sink\SinkInterface;
 
 class Collector
 {

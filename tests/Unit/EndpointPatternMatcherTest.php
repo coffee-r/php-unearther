@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Http\EndpointPatternMatcher;
+use CoffeeR\Ci3Unearth\Http\EndpointPatternMatcher;
 use PHPUnit\Framework\TestCase;
 
 class EndpointPatternMatcherTest extends TestCase

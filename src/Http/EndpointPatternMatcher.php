@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Http;
+namespace CoffeeR\Ci3Unearth\Http;
 
 class EndpointPatternMatcher
 {

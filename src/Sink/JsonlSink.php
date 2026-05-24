@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Sink;
+namespace CoffeeR\Ci3Unearth\Sink;
 
 class JsonlSink implements SinkInterface
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearth\Guzzle;
+namespace CoffeeR\Ci3Unearth\Guzzle;
 
-use CoffeeR\Unearth\Collector;
+use CoffeeR\Ci3Unearth\Collector;
 
 class UnearthMiddleware
 {

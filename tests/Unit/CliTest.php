@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ class CliTest extends TestCase
 
     public function testReportCommandWarnsAboutInvalidJsonl()
     {
-        $path = sys_get_temp_dir() . '/php-unearth-cli-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-ci3-unearth-cli-test-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, "not-json\n");
 
         $command = $this->command('report ' . escapeshellarg($path) . ' --format md 2>&1');
@@ -63,7 +63,7 @@ class CliTest extends TestCase
 
     public function testReportCommandSupportsRawValueMode()
     {
-        $path = sys_get_temp_dir() . '/php-unearth-cli-raw-test-' . uniqid('', true) . '.jsonl';
+        $path = sys_get_temp_dir() . '/php-ci3-unearth-cli-raw-test-' . uniqid('', true) . '.jsonl';
         file_put_contents($path, json_encode(array(
             'schema_version' => 1,
             'trace_id' => 'raw',
@@ -104,7 +104,7 @@ class CliTest extends TestCase
 
     public function testReportCommandSupportsTableCatalog()
     {
-        $catalogPath = sys_get_temp_dir() . '/php-unearth-table-catalog-' . uniqid('', true) . '.json';
+        $catalogPath = sys_get_temp_dir() . '/php-ci3-unearth-table-catalog-' . uniqid('', true) . '.json';
         file_put_contents($catalogPath, json_encode(array(
             'M_SHOHIN' => '商品マスタ。',
             'T_CART' => 'カート明細。',

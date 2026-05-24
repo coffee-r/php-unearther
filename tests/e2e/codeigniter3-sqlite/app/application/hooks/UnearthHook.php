@@ -1,6 +1,6 @@
 <?php
 
-use CoffeeR\Unearth\Adapter\CodeIgniter3\Hook;
+use CoffeeR\Ci3Unearth\Adapter\CodeIgniter3\Hook;
 
 class UnearthHook
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Redaction;
+namespace CoffeeR\Ci3Unearth\Redaction;
 
 class Redactor
 {

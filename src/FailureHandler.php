@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth;
+namespace CoffeeR\Ci3Unearth;
 
 class FailureHandler
 {
@@ -42,7 +42,7 @@ class FailureHandler
 
     private function formatMessage(\Throwable $exception, $context)
     {
-        return '[php-unearth] ' . (string) $context . ' failed: ' . get_class($exception);
+        return '[php-ci3-unearth] ' . (string) $context . ' failed: ' . get_class($exception);
     }
 
     private function log($message)
@@ -51,7 +51,7 @@ class FailureHandler
             try {
                 call_user_func($this->logger, $message);
             } catch (\Throwable $exception) {
-                @\error_log('[php-unearth] logger failed: ' . get_class($exception));
+                @\error_log('[php-ci3-unearth] logger failed: ' . get_class($exception));
             }
             return;
         }
@@ -60,7 +60,7 @@ class FailureHandler
             try {
                 @\log_message('error', $message);
             } catch (\Throwable $exception) {
-                @\error_log('[php-unearth] logger failed: ' . get_class($exception));
+                @\error_log('[php-ci3-unearth] logger failed: ' . get_class($exception));
             }
             return;
         }

@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth;
+namespace CoffeeR\Ci3Unearth;
 
 class Config
 {
@@ -60,7 +60,7 @@ class Config
             'sample_rate' => 0.1,
             'sink' => array(
                 'type' => 'jsonl',
-                'path' => sys_get_temp_dir() . '/php-unearth/observations-{date}.jsonl',
+                'path' => sys_get_temp_dir() . '/php-ci3-unearth/observations-{date}.jsonl',
                 'date_format' => 'Y-m-d',
             ),
             'codeigniter3' => array(

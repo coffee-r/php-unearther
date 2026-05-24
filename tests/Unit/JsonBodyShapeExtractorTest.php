@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Http\JsonBodyShapeExtractor;
+use CoffeeR\Ci3Unearth\Http\JsonBodyShapeExtractor;
 use PHPUnit\Framework\TestCase;
 
 class JsonBodyShapeExtractorTest extends TestCase

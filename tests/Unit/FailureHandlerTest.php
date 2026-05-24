@@ -4,25 +4,25 @@ namespace {
     if (!function_exists('log_message')) {
         function log_message($level, $message)
         {
-            $GLOBALS['__php_unearth_log_messages'][] = array($level, $message);
+            $GLOBALS['__php_ci3_unearth_log_messages'][] = array($level, $message);
         }
     }
 }
 
-namespace CoffeeR\Unearth\Tests\Unit {
-    use CoffeeR\Unearth\FailureHandler;
+namespace CoffeeR\Ci3Unearth\Tests\Unit {
+    use CoffeeR\Ci3Unearth\FailureHandler;
     use PHPUnit\Framework\TestCase;
 
     class FailureHandlerTest extends TestCase
     {
         protected function setUp(): void
         {
-            $GLOBALS['__php_unearth_log_messages'] = array();
+            $GLOBALS['__php_ci3_unearth_log_messages'] = array();
         }
 
         protected function tearDown(): void
         {
-            unset($GLOBALS['__php_unearth_log_messages']);
+            unset($GLOBALS['__php_ci3_unearth_log_messages']);
         }
 
         public function testNormalizeModeAcceptsKnownAndFallsBackToLog()
@@ -65,7 +65,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $handler->handle(new \RuntimeException('boom'), 'sink write');
 
             $this->assertCount(1, $messages);
-            $this->assertSame('[php-unearth] sink write failed: RuntimeException', $messages[0]);
+            $this->assertSame('[php-ci3-unearth] sink write failed: RuntimeException', $messages[0]);
         }
 
         public function testHandleInLogModeSwallowsLoggerThrowable()
@@ -85,10 +85,10 @@ namespace CoffeeR\Unearth\Tests\Unit {
 
             $handler->handle(new \LogicException('boom'), 'codeigniter3 hook start');
 
-            $this->assertNotEmpty($GLOBALS['__php_unearth_log_messages']);
-            $entry = $GLOBALS['__php_unearth_log_messages'][0];
+            $this->assertNotEmpty($GLOBALS['__php_ci3_unearth_log_messages']);
+            $entry = $GLOBALS['__php_ci3_unearth_log_messages'][0];
             $this->assertSame('error', $entry[0]);
-            $this->assertSame('[php-unearth] codeigniter3 hook start failed: LogicException', $entry[1]);
+            $this->assertSame('[php-ci3-unearth] codeigniter3 hook start failed: LogicException', $entry[1]);
         }
 
         public function testNonCallableLoggerArgumentIsIgnored()
@@ -97,7 +97,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
 
             $handler->handle(new \LogicException('boom'), 'sink write');
 
-            $this->assertNotEmpty($GLOBALS['__php_unearth_log_messages']);
+            $this->assertNotEmpty($GLOBALS['__php_ci3_unearth_log_messages']);
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "coffee-r/php-unearth",
+  "name": "coffee-r/php-ci3-unearth",
   "description": "Observed behavior reporting for CodeIgniter3 application migrations.",
   "type": "library",
   "license": "MIT",
@@ -15,12 +15,12 @@
   },
   "autoload": {
     "psr-4": {
-      "CoffeeR\\Unearth\\": "src/"
+      "CoffeeR\\Ci3Unearth\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "CoffeeR\\Unearth\\Tests\\": "tests/"
+      "CoffeeR\\Ci3Unearth\\Tests\\": "tests/"
     }
   },
   "bin": [

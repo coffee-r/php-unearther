@@ -1,9 +1,9 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Report\Aggregator;
-use CoffeeR\Unearth\Report\JsonlReader;
+use CoffeeR\Ci3Unearth\Report\Aggregator;
+use CoffeeR\Ci3Unearth\Report\JsonlReader;
 use PHPUnit\Framework\TestCase;
 
 class ReportAggregatorTest extends TestCase

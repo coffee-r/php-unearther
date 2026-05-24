@@ -9,7 +9,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer-bin /usr/bin/composer /usr/bin/composer
-COPY . /workspace/php-unearth
+COPY . /workspace/php-ci3-unearth
 COPY tests/e2e/codeigniter3-sqlite/app /var/www/html
 COPY tests/e2e/codeigniter3-postgresql/app /var/www/html
 RUN if [ -d /var/www/html/application/controllers/Api ]; then \

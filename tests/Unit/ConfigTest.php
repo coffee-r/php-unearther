@@ -1,8 +1,8 @@
 <?php
 
-namespace CoffeeR\Unearth\Tests\Unit;
+namespace CoffeeR\Ci3Unearth\Tests\Unit;
 
-use CoffeeR\Unearth\Config;
+use CoffeeR\Ci3Unearth\Config;
 use PHPUnit\Framework\TestCase;
 
 class ConfigTest extends TestCase

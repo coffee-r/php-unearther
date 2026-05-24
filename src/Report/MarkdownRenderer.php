@@ -1,6 +1,6 @@
 <?php
 
-namespace CoffeeR\Unearth\Report;
+namespace CoffeeR\Ci3Unearth\Report;
 
 class MarkdownRenderer
 {
