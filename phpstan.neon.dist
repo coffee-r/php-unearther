@@ -1,0 +1,11 @@
+parameters:
+    level: 0
+    phpVersion: 70300
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    parallel:
+        maximumNumberOfProcesses: 1
+    paths:
+        - bin/unearth
+        - src
+        - resources/codeigniter3

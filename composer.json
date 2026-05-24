@@ -1,12 +1,13 @@
 {
   "name": "coffee-r/php-unearth",
-  "description": "Observed behavior reporting for legacy PHP API migrations.",
+  "description": "Observed behavior reporting for CodeIgniter3 application migrations.",
   "type": "library",
   "license": "MIT",
   "require": {
     "php": ">=7.3"
   },
   "require-dev": {
+    "phpstan/phpstan": "^1.12",
     "phpunit/phpunit": "^9.6"
   },
   "suggest": {
@@ -27,6 +28,7 @@
   ],
   "scripts": {
     "test": "phpunit",
+    "analyse": "phpstan analyse --debug",
     "e2e:ci3-sqlite": "bash tests/e2e/codeigniter3-sqlite/scripts/run.sh",
     "e2e:ci3-pg": "bash tests/e2e/codeigniter3-postgresql/scripts/run.sh"
   }
