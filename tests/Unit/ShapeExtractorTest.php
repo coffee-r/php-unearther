@@ -33,7 +33,7 @@ class ShapeExtractorTest extends TestCase
 
         $this->assertSame(array(array(
             'sku' => 'string',
-            'quantity' => 'mixed',
+            'quantity' => 'number|string',
             'note' => 'string',
         )), $extractor->extract(array(
             array('sku' => 'A', 'quantity' => 2),

@@ -245,22 +245,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
             $this->assertFileDoesNotExist($path);
         }
 
-        public function testResponseShapeIsSkippedByDefault()
-        {
-            $path = $this->tempPath();
-            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
-                'application/json',
-                '{"ok":true}'
-            ));
-
-            (new Hook())->start($this->config($path));
-            (new Hook())->finish();
-
-            $trace = $this->readTrace($path);
-            $this->assertArrayNotHasKey('response_shape', $trace['http']);
-        }
-
-        public function testResponseShapeIsCapturedOnlyWhenExplicitlyEnabled()
+        public function testResponseShapeIsCapturedByDefault()
         {
             $path = $this->tempPath();
             $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
@@ -268,9 +253,7 @@ namespace CoffeeR\Unearth\Tests\Unit {
                 '{"ok":true,"items":[{"id":1},{"name":"coffee"}]}'
             ));
 
-            (new Hook())->start($this->config($path, array(
-                'http' => array('capture_json_response_shape' => true),
-            )));
+            (new Hook())->start($this->config($path));
             (new Hook())->finish();
 
             $trace = $this->readTrace($path);
@@ -281,6 +264,23 @@ namespace CoffeeR\Unearth\Tests\Unit {
                     'name' => 'string',
                 )),
             ), $trace['http']['response_shape']);
+        }
+
+        public function testResponseShapeCanBeDisabled()
+        {
+            $path = $this->tempPath();
+            $GLOBALS['__php_unearth_ci_instance'] = $this->ci(array(), array(), new CodeIgniter3OutputStub(
+                'application/json',
+                '{"ok":true}'
+            ));
+
+            (new Hook())->start($this->config($path, array(
+                'http' => array('capture_json_response_shape' => false),
+            )));
+            (new Hook())->finish();
+
+            $trace = $this->readTrace($path);
+            $this->assertArrayNotHasKey('response_shape', $trace['http']);
         }
 
         public function testHtmlContentTypeIsDetectedAsHtmlResponseKind()

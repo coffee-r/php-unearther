@@ -34,7 +34,7 @@ class ConfigTest extends TestCase
         $this->assertFalse($config->captureBindRaw());
         $this->assertSame('production', $config->environment());
         $this->assertTrue($config->captureJsonRequestShape());
-        $this->assertFalse($config->captureJsonResponseShape());
+        $this->assertTrue($config->captureJsonResponseShape());
         $this->assertSame(65536, $config->maxBodyBytes());
         $this->assertSame(array(), $config->endpointPatterns());
     }
